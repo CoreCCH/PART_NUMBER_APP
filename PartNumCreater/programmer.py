@@ -5,7 +5,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtGui import QCursor
 #function imports
-from functions import frame1, grid
+from functions import frame1, frame2, grid
 
 #initiallize GUI application
 app = QApplication(sys.argv)
