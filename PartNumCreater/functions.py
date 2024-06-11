@@ -30,6 +30,16 @@ widgets = {
     "label1":[],
     "label2":[],
     "label3":[],
+    "label4":[],
+    "label5":[],
+    "label6":[],
+    "label7":[],
+    "label8":[],
+    "label9":[],
+    "label10":[],
+    "label11":[],
+    "label12":[],
+    "label13":[],
     "line_bar1": [],
     "line_bar2": [],
     "line_bar3": [],
@@ -46,6 +56,7 @@ widgets = {
     "selected_box8":[],
     "selected_box9":[],
 }
+
 
 #initialliza grid layout
 grid = QGridLayout()
@@ -176,8 +187,9 @@ def frame1():
     parameters["part_list"].append(["SMT", "DIP"])
 
     #info widget
-    label = create_label("輸入料件資訊", 0, 0)
-    grid.addWidget(label, 0, 0, 1, 1)
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
 
     #LineEdit widget
     lineEdit = create_lineedit(0,0)
@@ -196,8 +208,9 @@ def frame1():
     grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
 
     #info widget
-    label = create_label("項目", 0, 0)
-    grid.addWidget(label, 1, 0, 1, 1)
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
 
     #button widget
     Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
@@ -224,8 +237,9 @@ def frame2(part_choose):
     parameters["part_type"].append(["電容", "電阻", "IC", "橋堆"])
 
     #info widget
-    label = create_label("輸入料件資訊", 0, 0)
-    grid.addWidget(label, 0, 0, 1, 1)
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
 
     #LineEdit widget
     lineEdit = create_lineedit(0,0)
@@ -244,8 +258,9 @@ def frame2(part_choose):
     grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
 
     #info widget
-    label = create_label("項目", 0, 0)
-    grid.addWidget(label, 1, 0, 1, 1)
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
 
     #button widget
     Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
@@ -257,8 +272,9 @@ def frame2(part_choose):
     grid.addWidget(widgets["selected_box1"][-1], 1, 2, 1, 1)
 
     #info widget
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 2, 0, 1, 1)
+    label3 = create_label("種類", 0, 0)
+    widgets["label3"].append(label3)
+    grid.addWidget(widgets["label3"][-1], 2, 0, 1, 1)
 
     #button widget
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
@@ -292,8 +308,9 @@ def frame3(part_choose, type_choose):
     parameters["part_supplier"].append([])
     
     #info widget
-    label = create_label("輸入料件資訊", 0, 0)
-    grid.addWidget(label, 0, 0, 1, 1)
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
 
     #LineEdit widget
     lineEdit1 = create_lineedit(0,0)
@@ -312,8 +329,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
 
     #1st
-    label = create_label("項目", 0, 0)
-    grid.addWidget(label, 1, 0, 1, 1)
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
 
     Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
 
@@ -325,8 +343,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box1"][-1], 1, 2, 1, 1)
 
     #2nd
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 2, 0, 1, 1)
+    label3 = create_label("種類", 0, 0)
+    widgets["label3"].append(label3)
+    grid.addWidget(widgets["label3"][-1], 2, 0, 1, 1)
 
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
     widgets["selected_box2"].append(Combox2)
@@ -338,8 +357,9 @@ def frame3(part_choose, type_choose):
     widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
 
     #3rd
-    label = create_label("零件尺寸", 0, 0)
-    grid.addWidget(label, 3, 0, 1, 1)
+    label4 = create_label("零件尺寸", 0, 0)
+    widgets["label4"].append(label4)
+    grid.addWidget(widgets["label4"][-1], 3, 0, 1, 1)
 
     Combox3 = create_combobox(parameters["part_size"][-1], 0, 0)
     widgets["selected_box3"].append(Combox3)
@@ -349,8 +369,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box3"][-1], 3, 2, 1, 1)
 
     #4th
-    label = create_label("類型", 0, 0)
-    grid.addWidget(label, 4, 0, 1, 1)
+    label5 = create_label("類型", 0, 0)
+    widgets["label5"].append(label5)
+    grid.addWidget(widgets["label5"][-1], 4, 0, 1, 1)
 
     Combox4 = create_combobox(parameters["part_coefficient"][-1], 0, 0)
     widgets["selected_box4"].append(Combox4)
@@ -359,8 +380,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box4"][-1], 4, 2, 1, 1)
 
     #4th
-    label = create_label("%數", 0, 0)
-    grid.addWidget(label, 5, 0, 1, 1)
+    label6 = create_label("%數", 0, 0)
+    widgets["label6"].append(label6)
+    grid.addWidget(widgets["label6"][-1], 5, 0, 1, 1)
 
     Combox5 = create_combobox(parameters["part_percentage"][-1], 0, 0)
     widgets["selected_box5"].append(Combox5)
@@ -369,8 +391,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box5"][-1], 5, 2, 1, 1)
 
     #5th 6th 7th
-    label = create_label("電容值", 0, 0)
-    grid.addWidget(label, 6, 0, 1, 1)
+    label7 = create_label("電容值", 0, 0)
+    widgets["label7"].append(label7)
+    grid.addWidget(widgets["label7"][-1], 6, 0, 1, 1)
 
     Combox6 = create_combobox(parameters["part_capacity"][-1], 0, 0)
     widgets["selected_box6"].append(Combox6)
@@ -379,8 +402,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box6"][-1], 6, 2, 1, 1)
 
     #8th
-    label = create_label("電壓值", 0, 0)
-    grid.addWidget(label, 7, 0, 1, 1)
+    label8 = create_label("電壓值", 0, 0)
+    widgets["label8"].append(label8)
+    grid.addWidget(widgets["label8"][-1], 7, 0, 1, 1)
 
     Combox7 = create_combobox(parameters["part_voltage"][-1], 0, 0)
     widgets["selected_box7"].append(Combox7)
@@ -389,8 +413,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box7"][-1], 7, 2, 1, 1)
 
     #9th
-    label = create_label("廠商", 0, 0)
-    grid.addWidget(label, 8, 0, 1, 1)
+    label9 = create_label("廠商", 0, 0)
+    widgets["label9"].append(label9)
+    grid.addWidget(widgets["label9"][-1], 8, 0, 1, 1)
 
     Combox8 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
     widgets["selected_box8"].append(Combox8)
@@ -399,8 +424,9 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box8"][-1], 8, 2, 1, 1)
 
     #10th 11th
-    label = create_label("供應商", 0, 0)
-    grid.addWidget(label, 9, 0, 1, 1)
+    label10 = create_label("供應商", 0, 0)
+    widgets["label10"].append(label10)
+    grid.addWidget(widgets["label10"][-1], 9, 0, 1, 1)
 
     Combox9 = create_combobox(parameters["part_supplier"][-1], 0, 0)
     widgets["selected_box9"].append(Combox9)
@@ -422,30 +448,37 @@ def frame3(part_choose, type_choose):
     widgets["line_bar2"].append(lineEdit2)
     grid.addWidget(widgets["line_bar2"][-1], 10, 1, 1, 2)
 
-    label = create_label("品項名稱", 0, 0)
-    grid.addWidget(label, 11, 0, 1, 1)
+    label11 = create_label("品項名稱", 0, 0)
+    widgets["label11"].append(label11)
+    grid.addWidget(widgets["label11"][-1], 11, 0, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
     widgets["line_bar3"].append(lineEdit3)
     grid.addWidget(widgets["line_bar3"][-1], 11, 1, 1, 2)
 
-    label = create_label("已產生編號", 0, 0)
-    grid.addWidget(label, 12, 0, 1, 1)
+    label12 = create_label("已產生編號", 0, 0)
+    widgets["label12"].append(label12)
+    grid.addWidget(widgets["label12"][-1], 11, 0, 1, 1)
 
     #QBoxLayout for produced part
-    label = create_label("", 0, 0)
-    grid.addWidget(label, 13, 0, 5, 1)
+    label13 = create_label("", 0, 0)
+    widgets["label13"].append(label13)
+    grid.addWidget(widgets["label13"][-1], 12, 0, 5, 1)
 
     hbox_layout = QHBoxLayout()
     hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 13, 0, 5, 3)
+    grid.addLayout(hbox_layout, 12, 0, 5, 3)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 19, 2, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 18, 2, 1, 1)
+
+#*********************************************
+#                  FRAME 4
+#*********************************************
 
 def frame4(part_choose, type_choose):
     global parameters
@@ -468,8 +501,9 @@ def frame4(part_choose, type_choose):
     print(parameters)
 
     #info widget
-    label = create_label("輸入料件資訊", 0, 0)
-    grid.addWidget(label, 0, 0, 1, 1)
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
 
     #LineEdit widget
     lineEdit1 = create_lineedit(0,0)
@@ -488,8 +522,9 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
 
     #1st
-    label = create_label("項目", 0, 0)
-    grid.addWidget(label, 1, 0, 1, 1)
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
 
     Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
 
@@ -501,8 +536,9 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["selected_box1"][-1], 1, 2, 1, 1)
 
     #2nd
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 2, 0, 1, 1)
+    label3 = create_label("種類", 0, 0)
+    widgets["label3"].append(label3)
+    grid.addWidget(widgets["label3"][-1], 2, 0, 1, 1)
 
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
     widgets["selected_box2"].append(Combox2)
@@ -514,8 +550,9 @@ def frame4(part_choose, type_choose):
     widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
 
     #3rd
-    label = create_label("零件尺寸", 0, 0)
-    grid.addWidget(label, 3, 0, 1, 1)
+    label4 = create_label("零件尺寸", 0, 0)
+    widgets["label4"].append(label4)
+    grid.addWidget(widgets["label4"][-1], 3, 0, 1, 1)
 
     Combox3 = create_combobox(parameters["part_size"][-1], 0, 0)
     widgets["selected_box3"].append(Combox3)
@@ -525,8 +562,9 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["selected_box3"][-1], 3, 2, 1, 1)
 
     #4th
-    label = create_label("%數", 0, 0)
-    grid.addWidget(label, 4, 0, 1, 1)
+    label5 = create_label("%數", 0, 0)
+    widgets["label5"].append(label5)
+    grid.addWidget(widgets["label5"][-1], 4, 0, 1, 1)
 
     Combox4 = create_combobox(parameters["part_percentage"][-1], 0, 0)
     widgets["selected_box4"].append(Combox4)
@@ -535,8 +573,9 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["selected_box4"][-1], 4, 2, 1, 1)
 
     #5th 6th 7th 8th
-    label = create_label("電阻值", 0, 0)
-    grid.addWidget(label, 5, 0, 1, 1)
+    label6 = create_label("電阻值", 0, 0)
+    widgets["label6"].append(label6)
+    grid.addWidget(widgets["label6"][-1], 5, 0, 1, 1)
 
     Combox5 = create_combobox(parameters["part_resistance"][-1], 0, 0)
     widgets["selected_box5"].append(Combox5)
@@ -545,8 +584,9 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["selected_box5"][-1], 5, 2, 1, 1)
 
     #9th
-    label = create_label("廠商", 0, 0)
-    grid.addWidget(label, 6, 0, 1, 1)
+    label7 = create_label("廠商", 0, 0)
+    widgets["label7"].append(label7)
+    grid.addWidget(widgets["label7"][-1], 6, 0, 1, 1)
 
     Combox6 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
     widgets["selected_box6"].append(Combox6)
@@ -555,8 +595,9 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["selected_box6"][-1], 6, 2, 1, 1)
 
     #10th 11th
-    label = create_label("供應商", 0, 0)
-    grid.addWidget(label, 7, 0, 1, 1)
+    label8 = create_label("供應商", 0, 0)
+    widgets["label8"].append(label8)
+    grid.addWidget(widgets["label8"][-1], 7, 0, 1, 1)
 
     Combox7 = create_combobox(parameters["part_supplier"][-1], 0, 0)
     widgets["selected_box7"].append(Combox7)
@@ -578,30 +619,37 @@ def frame4(part_choose, type_choose):
     widgets["line_bar2"].append(lineEdit2)
     grid.addWidget(widgets["line_bar2"][-1], 8, 1, 1, 2)
 
-    label = create_label("品項名稱", 0, 0)
-    grid.addWidget(label, 11, 0, 1, 1)
+    label9 = create_label("品項名稱", 0, 0)
+    widgets["label9"].append(label9)
+    grid.addWidget(widgets["label9"][-1], 11, 0, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
     widgets["line_bar3"].append(lineEdit3)
     grid.addWidget(widgets["line_bar3"][-1], 9, 1, 1, 2)
 
-    label = create_label("已產生編號", 0, 0)
-    grid.addWidget(label, 10, 0, 1, 1)
+    label10 = create_label("已產生編號", 0, 0)
+    widgets["label10"].append(label10)
+    grid.addWidget(widgets["label10"][-1], 9, 0, 1, 1)
 
     #QBoxLayout for produced part
-    label = create_label("", 0, 0)
-    grid.addWidget(label, 11, 0, 5, 1)
+    label11 = create_label("", 0, 0)
+    widgets["label11"].append(label11)
+    grid.addWidget(widgets["label11"][-1], 10, 0, 5, 1)
 
     hbox_layout = QHBoxLayout()
     hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 11, 0, 5, 3)
+    grid.addLayout(hbox_layout, 10, 0, 5, 3)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 17, 2, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 16, 2, 1, 1)
+
+#*********************************************
+#                  FRAME 5
+#*********************************************
 
 def frame5(part_choose, type_choose):
     global parameters
@@ -618,8 +666,9 @@ def frame5(part_choose, type_choose):
     parameters["part_kind"].append(["貼片IC"])
 
     #info widget
-    label = create_label("輸入料件資訊", 0, 0)
-    grid.addWidget(label, 0, 0, 1, 1)
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
 
      #LineEdit widget
     lineEdit = create_lineedit(0,0)
@@ -638,8 +687,9 @@ def frame5(part_choose, type_choose):
     grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
 
     #info widget
-    label = create_label("項目", 0, 0)
-    grid.addWidget(label, 1, 0, 1, 1)
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
 
     #button widget
     Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
@@ -651,8 +701,9 @@ def frame5(part_choose, type_choose):
     grid.addWidget(widgets["selected_box1"][-1], 1, 2, 1, 1)
 
     #info widget
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 2, 0, 1, 1)
+    label3 = create_label("種類", 0, 0)
+    widgets["label3"].append(label3)
+    grid.addWidget(widgets["label3"][-1], 2, 0, 1, 1)
 
     #button widget
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
@@ -664,8 +715,9 @@ def frame5(part_choose, type_choose):
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
 
     #info widget
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 3, 0, 1, 1)
+    label4 = create_label("種類", 0, 0)
+    widgets["label4"].append(label4)
+    grid.addWidget(widgets["label4"][-1], 3, 0, 1, 1)
     #button widget
     Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
     widgets["selected_box3"].append(Combox3)
@@ -692,8 +744,9 @@ def frame6(part_choose, type_choose, kind_choose):
     parameters["part_supplier"].append([])
 
     #info widget
-    label = create_label("輸入料件資訊", 0, 0)
-    grid.addWidget(label, 0, 0, 1, 1)
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
 
      #LineEdit widget
     lineEdit = create_lineedit(0,0)
@@ -712,8 +765,9 @@ def frame6(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
 
     #info widget
-    label = create_label("項目", 0, 0)
-    grid.addWidget(label, 1, 0, 1, 1)
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
 
     #button widget
     Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
@@ -725,8 +779,9 @@ def frame6(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["selected_box1"][-1], 1, 2, 1, 1)
 
     #info widget
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 2, 0, 1, 1)
+    label3 = create_label("種類", 0, 0)
+    widgets["label3"].append(label3)
+    grid.addWidget(widgets["label3"][-1], 2, 0, 1, 1)
 
     #button widget
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
@@ -738,8 +793,9 @@ def frame6(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
 
     #info widget
-    label = create_label("種類", 0, 0)
-    grid.addWidget(label, 3, 0, 1, 1)
+    label4 = create_label("種類", 0, 0)
+    widgets["label4"].append(label4)
+    grid.addWidget(widgets["label4"][-1], 3, 0, 1, 1)
     #button widget
     Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
     widgets["selected_box3"].append(Combox3)
@@ -750,8 +806,9 @@ def frame6(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["selected_box3"][-1], 3, 2, 1, 1)
 
     #info widget
-    label = create_label("料件名稱", 0, 0)
-    grid.addWidget(label, 4, 0, 1, 1)
+    label5 = create_label("料件名稱", 0, 0)
+    widgets["label5"].append(label5)
+    grid.addWidget(widgets["label5"][-1], 4, 0, 1, 1)
 
     Combox4 = create_combobox(parameters["part_name"][-1], 0, 0)
     widgets["selected_box4"].append(Combox4)
@@ -760,8 +817,9 @@ def frame6(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["selected_box4"][-1], 4, 2, 1, 1)
 
     #9th
-    label = create_label("廠商", 0, 0)
-    grid.addWidget(label, 5, 0, 1, 1)
+    label6 = create_label("廠商", 0, 0)
+    widgets["label6"].append(label6)
+    grid.addWidget(widgets["label6"][-1], 5, 0, 1, 1)
 
     Combox5 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
     widgets["selected_box5"].append(Combox5)
@@ -770,8 +828,9 @@ def frame6(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["selected_box5"][-1], 5, 2, 1, 1)
 
     #10th 11th
-    label = create_label("供應商", 0, 0)
-    grid.addWidget(label, 6, 0, 1, 1)
+    label7 = create_label("供應商", 0, 0)
+    widgets["label7"].append(label7)
+    grid.addWidget(widgets["label7"][-1], 6, 0, 1, 1)
 
     Combox6 = create_combobox(parameters["part_supplier"][-1], 0, 0)
     widgets["selected_box6"].append(Combox6)
@@ -793,30 +852,33 @@ def frame6(part_choose, type_choose, kind_choose):
     widgets["line_bar2"].append(lineEdit2)
     grid.addWidget(widgets["line_bar2"][-1], 7, 1, 1, 2)
 
-    label = create_label("品項名稱", 0, 0)
-    grid.addWidget(label, 11, 0, 1, 1)
+    label8 = create_label("品項名稱", 0, 0)
+    widgets["label8"].append(label8)
+    grid.addWidget(widgets["label8"][-1], 11, 0, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
     widgets["line_bar3"].append(lineEdit3)
     grid.addWidget(widgets["line_bar3"][-1], 8, 1, 1, 2)
 
-    label = create_label("已產生編號", 0, 0)
-    grid.addWidget(label, 9, 0, 1, 1)
+    label9 = create_label("已產生編號", 0, 0)
+    widgets["label9"].append(label9)
+    grid.addWidget(widgets["label9"][-1], 8, 0, 1, 1)
 
     #QBoxLayout for produced part
-    label = create_label("", 0, 0)
-    grid.addWidget(label, 10, 0, 5, 1)
+    label10 = create_label("", 0, 0)
+    widgets["label10"].append(label10)
+    grid.addWidget(widgets["label10"][-1], 9, 0, 5, 1)
 
     hbox_layout = QHBoxLayout()
     hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 10, 0, 5, 3)
+    grid.addLayout(hbox_layout, 9, 0, 5, 3)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 16, 2, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 15, 2, 1, 1)
 
 
 
