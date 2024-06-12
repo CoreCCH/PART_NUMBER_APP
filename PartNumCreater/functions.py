@@ -2,9 +2,11 @@ from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QComboB
 from PyQt5.QtGui import QPixmap, QCursor
 from PyQt5 import QtCore
 from urllib.request import urlopen
-import json
 import pandas as pd
-import random
+import execl_handle
+
+df = execl_handle.excel_file_read('曜璿東命名規則 20240605-2.xlsx', '命名規則')
+df2 = execl_handle.excel_file_read('曜璿東命名規則 20240605-2.xlsx', '電容種類規則')
 
 #dictionary to store local pre-load parameters on a global level
 parameters = {
@@ -158,18 +160,19 @@ def create_combobox(item_list, l_margin, r_margin):
 def combo_part_list_change(index: int):
     frame2(index)
 
-def combo_part_type_change(index1: int, index2: int):
-    if (index2 == 0):
-        print(index1, index2)
+def combo_part_type_change(index1: int, index2: int, text1: str, text2: str):
+    if (text1 == "SMT" and text2 == "電容"):
         frame3(index1, index2)
-    elif (index2 == 1):
-        print(index1, index2)
+    elif (text1 == "SMT" and  text2 == "電阻"):
         frame4(index1, index2)
     else:
         frame5(index1, index2)
 
-def combo_part_kind_change(index1: int, index2: int, index3: int):
-    frame6(index1, index2, index3)
+def combo_part_kind_change(index1: int, index2: int, index3: int, text1: str, text2: str, text3: str):
+    if ("電容" in text3):
+        frame7(index1, index2, index3)
+    else:    
+        frame6(index1, index2, index3)
 
 
 #*********************************************
@@ -184,7 +187,8 @@ def frame1():
     clear_parameters(parameters)
 
     #import combo box data
-    parameters["part_list"].append(["SMT", "DIP"])
+    data = execl_handle.excel_list_read(df)
+    parameters["part_list"].append([list(d.keys())[0] for d in data])
 
     #info widget
     label1 = create_label("輸入料件資訊", 0, 0)
@@ -233,8 +237,12 @@ def frame2(part_choose):
     clear_parameters(parameters)
 
     #import combo box data
-    parameters["part_list"].append(["SMT", "DIP"])
-    parameters["part_type"].append(["電容", "電阻", "IC", "橋堆"])
+    list_data = execl_handle.excel_list_read(df)
+    list_select = [list(d.keys())[0] for d in list_data]
+    parameters["part_list"].append(list_select)
+
+    _, type_data = execl_handle.excel_type_read(df)
+    parameters["part_type"].append([list(d.keys())[0] for d in type_data[list_select[part_choose]]])
 
     #info widget
     label1 = create_label("輸入料件資訊", 0, 0)
@@ -279,7 +287,7 @@ def frame2(part_choose):
     #button widget
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
     widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
+    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
 
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
@@ -297,15 +305,12 @@ def frame3(part_choose, type_choose):
     clear_parameters(parameters)
 
     #import combo box data
-    parameters["part_list"].append(["SMT", "DIP"])
-    parameters["part_type"].append(["電容", "電阻", "IC", "橋堆"])
-    parameters["part_size"].append(["0201","0402"])
-    parameters["part_coefficient"].append(["X7R","X5R", "NPO"])
-    parameters["part_percentage"].append(["B ± 0.10pF", "C ± 0.25pF"])
-    parameters["part_capacity"].append(["102 1000p", "200 20p"])
-    parameters["part_voltage"].append(["16V", "25V"])
-    parameters["part_manufacturer"].append(["國巨", "華新科"])
-    parameters["part_supplier"].append([])
+    list_data = execl_handle.excel_list_read(df)
+    list_selected = [list(d.keys())[0] for d in list_data]
+    parameters["part_list"].append(list_selected)
+
+    list_selection, type_data = execl_handle.excel_type_read(df)
+    parameters["part_type"].append([list(d.keys())[0] for d in type_data[list_selected[part_choose]]])
     
     #info widget
     label1 = create_label("輸入料件資訊", 0, 0)
@@ -354,7 +359,45 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
     widgets["selected_box2"].append(Combox2)
     widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
+    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
+
+    size_data = execl_handle.execl_size_read(df, list_selection)
+    try:
+        parameters["part_size"].append([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_size"].append(["0201","0402"])
+
+    parameters["part_coefficient"].append(["X7R","X5R", "NPO"])
+
+    percentage_data = execl_handle.execl_percentage_read(df, list_selection)
+    try:
+        parameters["part_percentage"].append([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_percentage"].append(["B ± 0.10pF", "C ± 0.25pF"])
+
+    capacity_data = execl_handle.execl_capacity_read(df, list_selection)
+    try:
+        parameters["part_capacity"].append([list(d.keys())[0] for d in capacity_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_capacity"].append(["102 1000p", "200 20p"])
+
+    voltage_data = execl_handle.execl_voltage_read(df, list_selection)
+    try:
+        parameters["part_voltage"].append([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_voltage"].append(["16V", "25V"])
+
+    manufacturer_data = execl_handle.execl_manufacturer_read(df, list_selection)
+    try:
+        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_manufacturer"].append(["國巨", "華新科"])
+
+    supplier_data = execl_handle.execl_supplier_read(df, list_selection)
+    try:
+        parameters["part_supplier"].append([list(d.keys())[0] for d in supplier_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_supplier"].append([])
 
     #3rd
     label4 = create_label("零件尺寸", 0, 0)
@@ -459,22 +502,22 @@ def frame3(part_choose, type_choose):
 
     label12 = create_label("已產生編號", 0, 0)
     widgets["label12"].append(label12)
-    grid.addWidget(widgets["label12"][-1], 11, 0, 1, 1)
+    grid.addWidget(widgets["label12"][-1], 12, 0, 1, 1)
 
     #QBoxLayout for produced part
     label13 = create_label("", 0, 0)
     widgets["label13"].append(label13)
-    grid.addWidget(widgets["label13"][-1], 12, 0, 5, 1)
+    grid.addWidget(widgets["label13"][-1], 13, 0, 5, 1)
 
     hbox_layout = QHBoxLayout()
     hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 12, 0, 5, 3)
+    grid.addLayout(hbox_layout, 13, 0, 5, 3)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 18, 2, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 19, 2, 1, 1)
 
 #*********************************************
 #                  FRAME 4
@@ -487,18 +530,14 @@ def frame4(part_choose, type_choose):
 
     clear_parameters(parameters)
 
-    print(parameters)
 
     #import combo box data
-    parameters["part_list"].append(["SMT", "DIP"])
-    parameters["part_type"].append(["電容", "電阻", "IC", "橋堆"])
-    parameters["part_size"].append(["0201","0402"])
-    parameters["part_percentage"].append(["0.50%", "F±1%"])
-    parameters["part_resistance"].append(["1KΩ", "560Ω"])
-    parameters["part_manufacturer"].append(["國巨", "華新科"])
-    parameters["part_supplier"].append([])
+    list_data = execl_handle.excel_list_read(df)
+    list_selected = [list(d.keys())[0] for d in list_data]
+    parameters["part_list"].append(list_selected)
 
-    print(parameters)
+    list_selection, type_data = execl_handle.excel_type_read(df)
+    parameters["part_type"].append([list(d.keys())[0] for d in type_data[list_selected[part_choose]]])
 
     #info widget
     label1 = create_label("輸入料件資訊", 0, 0)
@@ -547,7 +586,37 @@ def frame4(part_choose, type_choose):
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
     widgets["selected_box2"].append(Combox2)
     widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
+    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
+
+    size_data = execl_handle.execl_size_read(df, list_selection)
+    try:
+        parameters["part_size"].append([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_size"].append(["0201","0402"])
+
+    percentage_data = execl_handle.execl_percentage_read(df, list_selection)
+    try:
+        parameters["part_percentage"].append([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_percentage"].append(["0.50%", "F±1%"])
+
+    resistance_data = execl_handle.execl_capacity_read(df, list_selection)
+    try:
+        parameters["part_resistance"].append([list(d.keys())[0] for d in resistance_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_resistance"].append(["1KΩ", "560Ω"])
+
+    manufacturer_data = execl_handle.execl_manufacturer_read(df, list_selection)
+    try:
+        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_manufacturer"].append(["國巨", "華新科"])
+
+    supplier_data = execl_handle.execl_supplier_read(df, list_selection)
+    try:
+        parameters["part_supplier"].append([list(d.keys())[0] for d in supplier_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_supplier"].append([])
 
     #3rd
     label4 = create_label("零件尺寸", 0, 0)
@@ -621,7 +690,7 @@ def frame4(part_choose, type_choose):
 
     label9 = create_label("品項名稱", 0, 0)
     widgets["label9"].append(label9)
-    grid.addWidget(widgets["label9"][-1], 11, 0, 1, 1)
+    grid.addWidget(widgets["label9"][-1], 9, 0, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
@@ -630,12 +699,12 @@ def frame4(part_choose, type_choose):
 
     label10 = create_label("已產生編號", 0, 0)
     widgets["label10"].append(label10)
-    grid.addWidget(widgets["label10"][-1], 9, 0, 1, 1)
+    grid.addWidget(widgets["label10"][-1], 10, 0, 1, 1)
 
     #QBoxLayout for produced part
     label11 = create_label("", 0, 0)
     widgets["label11"].append(label11)
-    grid.addWidget(widgets["label11"][-1], 10, 0, 5, 1)
+    grid.addWidget(widgets["label11"][-1], 11, 0, 5, 1)
 
     hbox_layout = QHBoxLayout()
     hbox_layout.addWidget(QLabel('HBox Label 1'))
@@ -645,7 +714,7 @@ def frame4(part_choose, type_choose):
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 16, 2, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 17, 2, 1, 1)
 
 #*********************************************
 #                  FRAME 5
@@ -658,12 +727,13 @@ def frame5(part_choose, type_choose):
 
     clear_parameters(parameters)
 
-    print(parameters)
-
     #import combo box data
-    parameters["part_list"].append(["SMT", "DIP"])
-    parameters["part_type"].append(["電容", "電阻", "IC", "橋堆"])
-    parameters["part_kind"].append(["貼片IC"])
+    list_data = execl_handle.excel_list_read(df)
+    list_selected = [list(d.keys())[0] for d in list_data]
+    parameters["part_list"].append(list_selected)
+
+    list_selection, type_data = execl_handle.excel_type_read(df)
+    parameters["part_type"].append([list(d.keys())[0] for d in type_data[list_selected[part_choose]]])
 
     #info widget
     label1 = create_label("輸入料件資訊", 0, 0)
@@ -709,10 +779,16 @@ def frame5(part_choose, type_choose):
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
     widgets["selected_box2"].append(Combox2)
     widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
+    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
 
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
+
+    kind_data = execl_handle.execl_size_read(df, list_selection)
+    try:
+        parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_kind"].append(["貼片IC"])
 
     #info widget
     label4 = create_label("種類", 0, 0)
@@ -721,10 +797,14 @@ def frame5(part_choose, type_choose):
     #button widget
     Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
     widgets["selected_box3"].append(Combox3)
-    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex()))
+    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText()))
 
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box3"][-1], 3, 2, 1, 1)
+
+#*********************************************
+#                  FRAME 6
+#*********************************************
 
 def frame6(part_choose, type_choose, kind_choose):
     global parameters
@@ -733,15 +813,13 @@ def frame6(part_choose, type_choose, kind_choose):
 
     clear_parameters(parameters)
 
-    print(parameters)
-
     #import combo box data
-    parameters["part_list"].append(["SMT", "DIP"])
-    parameters["part_type"].append(["電容", "電阻", "IC", "橋堆"])
-    parameters["part_kind"].append(["貼片IC"])
-    parameters["part_name"].append(["RS621KXF", "LTL431ALT1G(乐山)", "ID5S609SEC-R1", "ULN2003G(UTC)"])
-    parameters["part_manufacturer"].append([])
-    parameters["part_supplier"].append([])
+    list_data = execl_handle.excel_list_read(df)
+    list_selected = [list(d.keys())[0] for d in list_data]
+    parameters["part_list"].append(list_selected)
+
+    list_selection, type_data = execl_handle.excel_type_read(df)
+    parameters["part_type"].append([list(d.keys())[0] for d in type_data[list_selected[part_choose]]])
 
     #info widget
     label1 = create_label("輸入料件資訊", 0, 0)
@@ -787,10 +865,16 @@ def frame6(part_choose, type_choose, kind_choose):
     Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
     widgets["selected_box2"].append(Combox2)
     widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex()))
+    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
 
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
+
+    kind_data = execl_handle.execl_size_read(df, list_selection)
+    try:
+        parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_kind"].append(["貼片IC"])
 
     #info widget
     label4 = create_label("種類", 0, 0)
@@ -800,10 +884,28 @@ def frame6(part_choose, type_choose, kind_choose):
     Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
     widgets["selected_box3"].append(Combox3)
     widgets["selected_box3"][-1].setCurrentIndex(kind_choose)
-    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex()))
+    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText()))
 
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box3"][-1], 3, 2, 1, 1)
+
+    name_data = execl_handle.execl_capacity_read(df, list_selection)
+    try:
+        parameters["part_name"].append([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_name"].append(["RS621KXF", "LTL431ALT1G(乐山)", "ID5S609SEC-R1", "ULN2003G(UTC)"])
+    
+    manufacturer_data = execl_handle.execl_manufacturer_read(df, list_selection)
+    try:
+        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_manufacturer"].append([])
+
+    supplier_data = execl_handle.execl_supplier_read(df, list_selection)
+    try:
+        parameters["part_supplier"].append([list(d.keys())[0] for d in supplier_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_supplier"].append([])
 
     #info widget
     label5 = create_label("料件名稱", 0, 0)
@@ -854,7 +956,7 @@ def frame6(part_choose, type_choose, kind_choose):
 
     label8 = create_label("品項名稱", 0, 0)
     widgets["label8"].append(label8)
-    grid.addWidget(widgets["label8"][-1], 11, 0, 1, 1)
+    grid.addWidget(widgets["label8"][-1], 8, 0, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
@@ -863,7 +965,7 @@ def frame6(part_choose, type_choose, kind_choose):
 
     label9 = create_label("已產生編號", 0, 0)
     widgets["label9"].append(label9)
-    grid.addWidget(widgets["label9"][-1], 8, 0, 1, 1)
+    grid.addWidget(widgets["label9"][-1], 9, 0, 1, 1)
 
     #QBoxLayout for produced part
     label10 = create_label("", 0, 0)
@@ -872,14 +974,212 @@ def frame6(part_choose, type_choose, kind_choose):
 
     hbox_layout = QHBoxLayout()
     hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 9, 0, 5, 3)
+    grid.addLayout(hbox_layout, 10, 0, 5, 3)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 15, 2, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 16, 2, 1, 1)
 
+#*********************************************
+#                  FRAME 7
+#*********************************************
+
+def frame7(part_choose, type_choose, kind_choose):
+    print(7)
+
+    global parameters
+
+    clear_widgets()
+
+    clear_parameters(parameters)
+
+    #import combo box data
+    list_data = execl_handle.excel_list_read(df)
+    list_selected = [list(d.keys())[0] for d in list_data]
+    parameters["part_list"].append(list_selected)
+
+    list_selection, type_data = execl_handle.excel_type_read(df)
+    parameters["part_type"].append([list(d.keys())[0] for d in type_data[list_selected[part_choose]]])
+
+    #info widget
+    label1 = create_label("輸入料件資訊", 0, 0)
+    widgets["label1"].append(label1)
+    grid.addWidget(widgets["label1"][-1], 0, 0, 1, 1)
+
+     #LineEdit widget
+    lineEdit = create_lineedit(0,0)
+    widgets["line_bar1"].append(lineEdit)
+    grid.addWidget(widgets["line_bar1"][-1], 0, 1, 1, 2)
+
+    # widgets["logo"].append(logo)
+
+    #button widget
+    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    #button callback
+    # button.clicked.connect(start_game)
+    widgets["button_input"].append(button1)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_input"][-1], 0, 3, 1, 1)
+
+    #info widget
+    label2 = create_label("項目", 0, 0)
+    widgets["label2"].append(label2)
+    grid.addWidget(widgets["label2"][-1], 1, 0, 1, 1)
+
+    #button widget
+    Combox1 = create_combobox(parameters["part_list"][-1], 0, 0)
+    widgets["selected_box1"].append(Combox1)
+    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
+    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_list_change(widgets["selected_box1"][-1].currentIndex()))
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box1"][-1], 1, 2, 1, 1)
+
+    #info widget
+    label3 = create_label("種類", 0, 0)
+    widgets["label3"].append(label3)
+    grid.addWidget(widgets["label3"][-1], 2, 0, 1, 1)
+
+    #button widget
+    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
+    widgets["selected_box2"].append(Combox2)
+    widgets["selected_box2"][-1].setCurrentIndex(type_choose)
+    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box2"][-1], 2, 2, 1, 1)
+
+    kind_data = execl_handle.execl_size_read(df, list_selection)
+    try:
+        parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_kind"].append(["貼片IC"])
+
+    #info widget
+    label4 = create_label("種類", 0, 0)
+    widgets["label4"].append(label4)
+    grid.addWidget(widgets["label4"][-1], 3, 0, 1, 1)
+    #button widget
+    Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
+    widgets["selected_box3"].append(Combox3)
+    widgets["selected_box3"][-1].setCurrentIndex(kind_choose)
+    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText()))
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box3"][-1], 3, 2, 1, 1)
+
+    percentage_data = execl_handle.execl_percentage_read(df, list_selection)
+    try:
+        parameters["part_percentage"].append([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_percentage"].append([])
+
+    name_data = execl_handle.execl_capacity_read(df, list_selection)
+    try:
+        parameters["part_name"].append([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_name"].append(["RS621KXF", "LTL431ALT1G(乐山)", "ID5S609SEC-R1", "ULN2003G(UTC)"])
+    
+    manufacturer_data = execl_handle.execl_manufacturer_read(df, list_selection)
+    try:
+        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_manufacturer"].append([])
+
+    supplier_data = execl_handle.execl_supplier_read(df, list_selection)
+    try:
+        parameters["part_supplier"].append([list(d.keys())[0] for d in supplier_data[widgets["selected_box2"][-1].currentText()]])
+    except:
+        parameters["part_supplier"].append([])
+
+    #info widget
+    label5 = create_label("%數", 0, 0)
+    widgets["label5"].append(label5)
+    grid.addWidget(widgets["label5"][-1], 4, 0, 1, 1)
+
+    Combox4 = create_combobox(parameters["part_percentage"][-1], 0, 0)
+    widgets["selected_box4"].append(Combox4)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box4"][-1], 4, 2, 1, 1)
+
+    #info widget
+    label6 = create_label("料件名稱", 0, 0)
+    widgets["label6"].append(label6)
+    grid.addWidget(widgets["label6"][-1], 5, 0, 1, 1)
+
+    Combox5 = create_combobox(parameters["part_name"][-1], 0, 0)
+    widgets["selected_box5"].append(Combox5)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box5"][-1], 5, 2, 1, 1)
+
+    #9th
+    label7 = create_label("廠商", 0, 0)
+    widgets["label7"].append(label7)
+    grid.addWidget(widgets["label7"][-1], 6, 0, 1, 1)
+
+    Combox6 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
+    widgets["selected_box6"].append(Combox6)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box6"][-1], 6, 2, 1, 1)
+
+    #10th 11th
+    label8 = create_label("供應商", 0, 0)
+    widgets["label8"].append(label8)
+    grid.addWidget(widgets["label8"][-1], 7, 0, 1, 1)
+
+    Combox7 = create_combobox(parameters["part_supplier"][-1], 0, 0)
+    widgets["selected_box7"].append(Combox7)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["selected_box7"][-1], 7, 2, 1, 1)
+
+    #button widget
+    button2 = create_button("生成料號", "#FFFDD4", 0, 0)
+    #button callback
+    # button.clicked.connect(start_game)
+    widgets["button_output"].append(button2)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_output"][-1], 8, 0, 1, 1)
+
+    #LineEdit widget
+    lineEdit2 = create_lineedit(0,0)
+    widgets["line_bar2"].append(lineEdit2)
+    grid.addWidget(widgets["line_bar2"][-1], 8, 1, 1, 2)
+
+    label9 = create_label("品項名稱", 0, 0)
+    widgets["label9"].append(label9)
+    grid.addWidget(widgets["label9"][-1], 9, 0, 1, 1)
+
+    #LineEdit widget
+    lineEdit3 = create_lineedit(0,0)
+    widgets["line_bar3"].append(lineEdit3)
+    grid.addWidget(widgets["line_bar3"][-1], 9, 1, 1, 2)
+
+    label10 = create_label("已產生編號", 0, 0)
+    widgets["label10"].append(label10)
+    grid.addWidget(widgets["label10"][-1], 10, 0, 1, 1)
+
+    #QBoxLayout for produced part
+    label11 = create_label("", 0, 0)
+    widgets["label11"].append(label11)
+    grid.addWidget(widgets["label11"][-1], 11, 0, 5, 1)
+
+    hbox_layout = QHBoxLayout()
+    hbox_layout.addWidget(QLabel('HBox Label 1'))
+    grid.addLayout(hbox_layout, 11, 0, 5, 3)
+
+    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
+    widgets["button_export"].append(button3)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_export"][-1], 17, 2, 1, 1)
 
 
     
