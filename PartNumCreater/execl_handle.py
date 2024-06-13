@@ -36,12 +36,12 @@ def add_capacity(df2):
 
     for index in range(X7R_column_values_code.size):
         if (X7R_column_values_code[index] != "4.編號"  and pd.notna(X7R_column_values_code[index])):
-            X7R_list.append(X7R_column_values_code[index])
+            X7R_list.append(str(X7R_column_values_code[index]))
             X5R_list.append(X5R_column_values_code[index])
             NPO_list.append(NPO_column_values_code[index])
 
-    return_dict.update({'x7R':X7R_list})
-    return_dict.update({'x5R':X5R_list})
+    return_dict.update({'X7R':X7R_list})
+    return_dict.update({'X5R':X5R_list})
     return_dict.update({'NPO':NPO_list})
 
     return return_dict
