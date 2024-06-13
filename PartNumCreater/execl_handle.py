@@ -96,13 +96,13 @@ def execl_size_read(df, key_list: list):
     column_values_code = df.iloc[:, 11]
     column_values_type = df.iloc[:, 10]
 
-    for longth in range(column_values.size):
-        if (column_values_type[longth] == "種類"):
-            if(type_data != column_values_type[longth+1]):
-                type_data = column_values_type[longth+1]
+    for length in range(column_values.size):
+        if (column_values_type[length] == "種類"):
+            if(type_data != column_values_type[length+1]):
+                type_data = column_values_type[length+1]
 
-        if (column_values[longth] != "零件尺寸" and column_values[longth] != "種類" and pd.notna(column_values[longth])):
-            storage_list.append([type_data,column_values[longth],longth])
+        if (column_values[length] != "零件尺寸" and column_values[length] != "種類" and pd.notna(column_values[length])):
+            storage_list.append([type_data,column_values[length],length])
     
     for item in key_list:
         size_value.clear()
@@ -125,13 +125,13 @@ def execl_percentage_read(df, key_list: list):
     column_values_code = df.iloc[:, 13]
     column_values_type = df.iloc[:, 10]
 
-    for longth in range(column_values.size):
-        if (column_values_type[longth] == "種類"):
-            if(type_data != column_values_type[longth+1]):
-                type_data = column_values_type[longth+1]
+    for length in range(column_values.size):
+        if (column_values_type[length] == "種類"):
+            if(type_data != column_values_type[length+1]):
+                type_data = column_values_type[length+1]
 
-        if (column_values[longth] != "%數" and pd.notna(column_values[longth])):
-            storage_list.append([type_data,column_values[longth],longth])
+        if (column_values[length] != "%數" and pd.notna(column_values[length])):
+            storage_list.append([type_data,column_values[length],length])
 
     for item in key_list:
         percentage_value.clear()
@@ -152,13 +152,13 @@ def execl_capacity_read(df, key_list: list):
     column_values_code = df.iloc[:, 15]
     column_values_type = df.iloc[:, 10]
 
-    for longth in range(column_values.size):
-        if (column_values_type[longth] == "種類"):
-            if(type_data != column_values_type[longth+1]):
-                type_data = column_values_type[longth+1]
+    for length in range(column_values.size):
+        if (column_values_type[length] == "種類"):
+            if(type_data != column_values_type[length+1]):
+                type_data = column_values_type[length+1]
 
-        if (column_values[longth] != "電容值" and column_values[longth] != "電阻值" and column_values[longth] != "PCB名稱" and column_values[longth] != "零件名稱" and pd.notna(column_values[longth])):
-            storage_list.append([type_data,column_values[longth],longth])
+        if (column_values[length] != "電容值" and column_values[length] != "電阻值" and column_values[length] != "PCB名稱" and column_values[length] != "零件名稱" and pd.notna(column_values[length])):
+            storage_list.append([type_data,column_values[length],length])
 
     for item in key_list:
         capacity_value.clear()
@@ -179,13 +179,13 @@ def execl_voltage_read(df, key_list: list):
     column_values_code = df.iloc[:, 17]
     column_values_type = df.iloc[:, 10]
 
-    for longth in range(column_values.size):
-        if (column_values_type[longth] == "種類"):
-            if(type_data != column_values_type[longth+1]):
-                type_data = column_values_type[longth+1]
+    for length in range(column_values.size):
+        if (column_values_type[length] == "種類"):
+            if(type_data != column_values_type[length+1]):
+                type_data = column_values_type[length+1]
 
-        if (column_values[longth] != "電壓" and pd.notna(column_values[longth])):
-            storage_list.append([type_data,column_values[longth],longth])
+        if (column_values[length] != "電壓" and pd.notna(column_values[length])):
+            storage_list.append([type_data,column_values[length],length])
 
     for item in key_list:
         voltage_value.clear()
@@ -206,13 +206,13 @@ def execl_manufacturer_read(df, key_list: list):
     column_values_code = df.iloc[:, 19]
     column_values_type = df.iloc[:, 10]
 
-    for longth in range(column_values.size):
-        if (column_values_type[longth] == "種類"):
-            if(type_data != column_values_type[longth+1]):
-                type_data = column_values_type[longth+1]
+    for length in range(column_values.size):
+        if (column_values_type[length] == "種類"):
+            if(type_data != column_values_type[length+1]):
+                type_data = column_values_type[length+1]
 
-        if (column_values[longth] != "廠商" and pd.notna(column_values[longth])):
-            storage_list.append([type_data,column_values[longth],longth])
+        if (column_values[length] != "廠商" and pd.notna(column_values[length])):
+            storage_list.append([type_data,column_values[length],length])
 
     for item in key_list:
         manufacturer_value.clear()
@@ -233,13 +233,13 @@ def execl_supplier_read(df, key_list: list):
     column_values_code = df.iloc[:, 21]
     column_values_type = df.iloc[:, 10]
 
-    for longth in range(column_values.size):
-        if (column_values_type[longth] == "種類"):
-            if(type_data != column_values_type[longth+1]):
-                type_data = column_values_type[longth+1]
+    for length in range(column_values.size):
+        if (column_values_type[length] == "種類"):
+            if(type_data != column_values_type[length+1]):
+                type_data = column_values_type[length+1]
 
-        if (column_values[longth] != "供應商" and pd.notna(column_values[longth])):
-            storage_list.append([type_data,column_values[longth],longth])
+        if (column_values[length] != "供應商" and pd.notna(column_values[length])):
+            storage_list.append([type_data,column_values[length],length])
 
     for item in key_list:
         manufacturer_value.clear()
@@ -250,7 +250,28 @@ def execl_supplier_read(df, key_list: list):
 
     return return_value
 
+def check_output_existing(file_path, headers):
+    try:
+        existing_df = pd.read_excel(file_path)
 
+        return existing_df
+    except:
+        return None
+
+def append_data_to_excel(file_path, part_number, values, headers):
+    try:
+        existing_df = pd.read_excel(file_path)
+    except FileNotFoundError:
+        existing_df = pd.DataFrame(columns=headers)
+
+
+    add_row = [part_number] + values
+    new_row = pd.DataFrame([add_row], columns=headers)
+    
+    existing_df = pd.concat([existing_df, new_row], ignore_index=True)
+
+    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+        existing_df.to_excel(writer, index=False, header=headers)
 
 # df = excel_file_read('曜璿東命名規則 20240605-2.xlsx', '命名規則')
 # df2 = excel_file_read('曜璿東命名規則 20240605-2.xlsx', '電容種類規則')
