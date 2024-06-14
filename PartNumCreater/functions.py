@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QComboBox, QHBoxLayout, QDialog, QVBoxLayout
-from PyQt5.QtGui import QPixmap, QCursor
+from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QComboBox, QScrollArea, QDialog, QVBoxLayout, QGraphicsDropShadowEffect, QTextEdit
+from PyQt5.QtGui import QPixmap, QCursor, QColor
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 from urllib.request import urlopen
 import pandas as pd
 import execl_handle
@@ -31,7 +32,10 @@ output_df = execl_handle.check_output_existing(file_path, headers)
 check_buffer = [output_df.iloc[:, 0][i] for i in range(output_df.iloc[:, 0].size)] if output_df is not None else []
 part_code = int([output_df.iloc[:, 1][i] for i in range(output_df.iloc[:, 0].size)][-1].split("C")[-1])+1 if output_df is not None else 1
 
-hbox_layout = QHBoxLayout()
+vbox_label_layout = QVBoxLayout()
+# vbox_trash_layout = QVBoxLayout()
+Pannel = None
+
 
 #dictionary to store local pre-load parameters on a global level
 parameters = {
@@ -84,6 +88,8 @@ widgets = {
     "selected_box9":[],
 }
 
+part_number_label = {}
+part_number_button= {}
 
 #initialliza grid layout
 grid = QGridLayout()
@@ -104,7 +110,8 @@ def clear_parameters(parameters):
 def create_label(name, l_margin, r_margin):
     #create identical buttons with custom left & right margins
     label = QLabel(name)
-    # label.setFixedWidth(200)
+    label.setFixedWidth(150)
+    label.setFixedHeight(44)
     label.setStyleSheet(
         #setting variable margins
         "*{margin-left: " + str(l_margin) +"px;"+
@@ -112,6 +119,9 @@ def create_label(name, l_margin, r_margin):
         '''
             font-size: 20px;
             color: 'black';
+            padding: 0px 0px;
+            font-family: Microsoft JhengHei;
+            font-weight: bold;
         }
         '''
     )
@@ -119,7 +129,7 @@ def create_label(name, l_margin, r_margin):
 
 def create_lineedit(l_margin, r_margin):
     lineedit = QLineEdit()
-    # lineedit.setFixedWidth(400)
+    lineedit.setFixedHeight(44)
     lineedit.setStyleSheet(
         #setting variable margins
         "*{margin-left: " + str(l_margin) +"px;"+
@@ -130,9 +140,17 @@ def create_lineedit(l_margin, r_margin):
             color: 'black';
             padding: 5px 0;
             border-radius: 5px;
+            font-family: Microsoft JhengHei;
+            font-weight: bold;
         }
         *:hover{
             background: '#ECECEC';
+            font-size: 20px;
+            color: 'black';
+            padding: 5px 0;
+            border-radius: 5px;
+            font-family: Microsoft JhengHei;
+            font-weight: bold;
         }
         '''
     )
@@ -140,7 +158,8 @@ def create_lineedit(l_margin, r_margin):
 
 def create_button(name, color ,l_margin, r_margin):
     button = QPushButton(name)
-    # button.setFixedWidth(200)
+    button.setFixedWidth(110)
+    button.setFixedHeight(44)
     button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
     button.setStyleSheet(
         #setting variable margins
@@ -150,17 +169,26 @@ def create_button(name, color ,l_margin, r_margin):
         '''
             font-size: 20px;
             color: 'black';
-            padding: 5px 0px;
-            border-radius: 5px;
+            padding: 0px 0px;
+            border-radius: 10px;
+            font-family: 'Microsoft JhengHei';
+            font-weight: bold;
         }
         '''
     )
     # button.clicked.connect(start_game)
+    shadow_effect = QGraphicsDropShadowEffect()
+    shadow_effect.setBlurRadius(10)
+    shadow_effect.setXOffset(5)
+    shadow_effect.setYOffset(5)
+    shadow_effect.setColor(QColor(0, 0, 0, 160))
+    button.setGraphicsEffect(shadow_effect)
     return button
     
 def create_combobox(item_list, l_margin, r_margin):
     combo = QComboBox()
-    # combo.setFixedWidth(150)
+    combo.setFixedWidth(200)
+    combo.setFixedHeight(44)
     combo.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
     combo.addItems(item_list)
     combo.setCurrentIndex(-1)
@@ -174,6 +202,8 @@ def create_combobox(item_list, l_margin, r_margin):
             color: 'black';
             padding: 5px 0px;
             border-radius: 5px;
+            font-size: 14px;
+            font-family: Microsoft JhengHei
         }
         *:hover{
             background: '#ECECEC';
@@ -259,8 +289,10 @@ def part_number_generate_for_frame3(line_edit1, line_edit2, object: str, type: s
     
     if (part_number not in check_buffer):
         if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), part_name, object, type, size, percentage, voltage, capacity, manufacturer,supplier, str(current_date = current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
+            output_data.update({part_number:["C"+str(part_code).zfill(5), part_name, object, type, size, percentage, voltage, capacity, manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
             part_code += 1
+            global Pannel
+            Pannel.append(part_number)
     else:
         show_alert("已存在料號 ",part_number)
 
@@ -316,8 +348,10 @@ def part_number_generate_for_frame4(line_edit1, line_edit2, object: str, type: s
     
     if (part_number not in check_buffer):
         if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), part_name, object, type, size, percentage, "", resistance, manufacturer,supplier, str(current_date = current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
+            output_data.update({part_number:["C"+str(part_code).zfill(5), part_name, object, type, size, percentage, "", resistance, manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
             part_code += 1
+            global Pannel
+            Pannel.append(part_number)
     else:
         show_alert("已存在料號 ",part_number)
 
@@ -345,6 +379,8 @@ def part_number_generate_for_frame6(line_edit1, object: str, type: str, kind: st
 
     part_number += str(next((item[type] for item in type_data[object] if type in item), None))
 
+    
+
     part_number += str(next((item[kind] for item in kind_data[type] if kind in item), None))
 
     part_number += str(next((item[name] for item in name_data[type] if name in item), None)).zfill(5)
@@ -359,11 +395,22 @@ def part_number_generate_for_frame6(line_edit1, object: str, type: str, kind: st
 
     global output_data
     global part_code
+    global vbox_label_layout
+    global scrollArea
+    # global vbox_trash_layout
     
     if (part_number not in check_buffer):
         if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), "", object, type, kind, "", name, "", manufacturer,supplier, str(current_date = current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
+            output_data.update({part_number:["C"+str(part_code).zfill(5), "", object, type, kind, "", name, "", manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
             part_code += 1
+            # globals()['label'+part_number] = create_label(part_number,0,0)
+            # globals()['button'+part_number] = create_button("delete","#DFDFDF",0,0)
+            # vbox_label_layout.addWidget(globals()['label'+part_number])
+            # part_name_list = ""
+            global Pannel
+            Pannel.append(part_number)
+            
+            # vbox_trash_layout.addWidget(globals()['button'+part_number])
     else:
         show_alert("已存在料號 ",part_number)
 
@@ -416,8 +463,10 @@ def part_number_generate_for_frame7(line_edit1, object: str, type: str, kind: st
     
     if (part_number not in check_buffer):
         if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), "", object, type, kind, percentage, name, voltage, manufacturer,supplier, str(current_date = current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
+            output_data.update({part_number:["C"+str(part_code).zfill(5), "", object, type, kind, percentage, name, voltage, manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
             part_code += 1
+            global Pannel
+            Pannel.append(part_number)
     else:
         show_alert("已存在料號 ",part_number)
         
@@ -427,6 +476,11 @@ def export_data_to_excel():
     for part_number, values in list(output_data.items()):
         execl_handle.append_data_to_excel(file_path, part_number, values, headers)
         del output_data[part_number]
+        global Pannel
+    
+    Pannel.clear()
+    for part_number in output_data:
+        Pannel.append(part_number)
     
     global check_buffer
     output_df = execl_handle.check_output_existing(file_path, headers)
@@ -435,7 +489,8 @@ def export_data_to_excel():
 def show_alert(message):
     # 创建对话框
     dialog = QDialog()
-    dialog.setWindowTitle("Existing Parts")
+    dialog.setWindowTitle("警告")
+    dialog.resize(200,100)
     layout = QVBoxLayout()
     
     # 为每个已存在的料号添加一个标签
@@ -474,13 +529,14 @@ def frame1():
 
     #LineEdit widget
     lineEdit = create_lineedit(0,0)
+    
     widgets["line_bar1"].append(lineEdit)
     grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
 
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -500,6 +556,31 @@ def frame1():
 
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
+
+    label11 = create_label("已產生編號", 0, 0)
+    widgets["label11"].append(label11)
+    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
+
+    #QBoxLayout for produced part
+    # label12 = create_label("", 0, 0)
+    # label12.setStyleSheet("background: #DFDFDF")
+    # widgets["label12"].append(label12)
+    # grid.addWidget(widgets["label12"][-1], 3, 6, 4, 1)
+    global Pannel
+    Pannel = QTextEdit()
+    Pannel.setReadOnly(True)
+    Pannel.setStyleSheet("font-size:20px; font-family: Microsoft JhengHei;font-weight: bold;")
+    Pannel.setFixedWidth(180)
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+    # grid.addLayout(vbox_trash_layout, 3, 7, 4, 1)
+
+    
+
+    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
+    widgets["button_export"].append(button3)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
 
 
 #*********************************************
@@ -531,7 +612,7 @@ def frame2(part_choose):
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -566,6 +647,24 @@ def frame2(part_choose):
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 1)
 
+    label11 = create_label("已產生編號", 0, 0)
+    widgets["label11"].append(label11)
+    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
+
+    #QBoxLayout for produced part
+    # label12 = create_label("", 0, 0)
+    # label12.setStyleSheet("background: #DFDFDF")
+    # widgets["label12"].append(label12)
+    # grid.addWidget(widgets["label12"][-1], 3, 6, 4, 1)
+
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
+
+    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
+    widgets["button_export"].append(button3)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
 
 #*********************************************
 #                  FRAME 3
@@ -596,7 +695,7 @@ def frame3(part_choose, type_choose):
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -753,6 +852,7 @@ def frame3(part_choose, type_choose):
 
     #LineEdit widget
     lineEdit2 = create_lineedit(0,0)
+    lineEdit2.setReadOnly(True)
     widgets["line_bar2"].append(lineEdit2)
     grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
 
@@ -762,6 +862,7 @@ def frame3(part_choose, type_choose):
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
+    lineEdit3.setReadOnly(True)
     widgets["line_bar3"].append(lineEdit3)
     grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
 
@@ -770,22 +871,22 @@ def frame3(part_choose, type_choose):
     grid.addWidget(widgets["label12"][-1], 2, 6, 1, 1)
 
     #QBoxLayout for produced part
-    label13 = create_label("", 0, 0)
-    widgets["label13"].append(label13)
-    grid.addWidget(widgets["label13"][-1], 3, 6, 4, 2)
+    # label13 = create_label("", 0, 0)
+    # label13.setStyleSheet("background: #DFDFDF")
+    # widgets["label13"].append(label13)
+    # grid.addWidget(widgets["label13"][-1], 3, 6, 4, 1)
 
-    hbox_layout = QHBoxLayout()
-    hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 3, 6, 4, 2)
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 8, 7, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
 
     button2.clicked.connect(lambda: part_number_generate_for_frame3(lineEdit2, lineEdit3, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText(), widgets["selected_box7"][-1].currentText(), widgets["selected_box8"][-1].currentText(), widgets["selected_box9"][-1].currentText()))
-    
+    button3.clicked.connect(export_data_to_excel)
 
 #*********************************************
 #                  FRAME 4
@@ -817,7 +918,7 @@ def frame4(part_choose, type_choose):
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -946,36 +1047,42 @@ def frame4(part_choose, type_choose):
 
     #LineEdit widget
     lineEdit2 = create_lineedit(0,0)
+    lineEdit2.setReadOnly(True)
     widgets["line_bar2"].append(lineEdit2)
     grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
-
+    
     label9 = create_label("品項名稱", 0, 0)
     widgets["label9"].append(label9)
     grid.addWidget(widgets["label9"][-1], 8, 1, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
+    lineEdit3.setReadOnly(True)
     widgets["line_bar3"].append(lineEdit3)
     grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
+    
 
     label10 = create_label("已產生編號", 0, 0)
     widgets["label10"].append(label10)
     grid.addWidget(widgets["label10"][-1], 2, 6, 1, 1)
 
     #QBoxLayout for produced part
-    label11 = create_label("", 0, 0)
-    widgets["label11"].append(label11)
-    grid.addWidget(widgets["label11"][-1], 3, 6, 4, 2)
+    # label11 = create_label("", 0, 0)
+    # label11.setStyleSheet("background: #DFDFDF")
+    # widgets["label11"].append(label11)
+    # grid.addWidget(widgets["label11"][-1], 3, 6, 4, 1)
 
-    grid.addLayout(hbox_layout, 3, 6, 4, 2)
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 8, 7, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
 
     button2.clicked.connect(lambda: part_number_generate_for_frame4(lineEdit2, lineEdit3, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText(), widgets["selected_box7"][-1].currentText()))
+    button3.clicked.connect(export_data_to_excel)
 
 #*********************************************
 #                  FRAME 5
@@ -1006,7 +1113,7 @@ def frame5(part_choose, type_choose):
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -1059,6 +1166,18 @@ def frame5(part_choose, type_choose):
     #place global widgets on the grid
     grid.addWidget(widgets["selected_box3"][-1], 4, 2, 1, 1)
 
+    label11 = create_label("已產生編號", 0, 0)
+    widgets["label11"].append(label11)
+    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
+
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+
+    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
+    widgets["button_export"].append(button3)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
+
 #*********************************************
 #                  FRAME 6
 #*********************************************
@@ -1088,7 +1207,7 @@ def frame6(part_choose, type_choose, kind_choose):
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -1197,40 +1316,44 @@ def frame6(part_choose, type_choose, kind_choose):
     widgets["button_output"].append(button2)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_output"][-1], 6, 1, 1, 1)
+    grid.addWidget(widgets["button_output"][-1], 7, 1, 1, 1)
 
     #LineEdit widget
     lineEdit2 = create_lineedit(0,0)
+    lineEdit2.setReadOnly(True)
     widgets["line_bar2"].append(lineEdit2)
-    grid.addWidget(widgets["line_bar2"][-1], 6, 2, 1, 3)
+    grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
 
     label8 = create_label("品項名稱", 0, 0)
     widgets["label8"].append(label8)
-    grid.addWidget(widgets["label8"][-1], 7, 1, 1, 1)
+    grid.addWidget(widgets["label8"][-1], 8, 1, 1, 1)
 
     #LineEdit widget
     lineEdit3 = create_lineedit(0,0)
     widgets["line_bar3"].append(lineEdit3)
-    grid.addWidget(widgets["line_bar3"][-1], 7, 2, 1, 3)
+    grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
 
     label9 = create_label("已產生編號", 0, 0)
     widgets["label9"].append(label9)
     grid.addWidget(widgets["label9"][-1], 2, 6, 1, 1)
 
     #QBoxLayout for produced part
-    label10 = create_label("", 0, 0)
-    widgets["label10"].append(label10)
-    grid.addWidget(widgets["label10"][-1], 3, 6, 4, 2)
+    # label10 = create_label("", 0, 0)
+    # label10.setStyleSheet("background: #DFDFDF")
+    # widgets["label10"].append(label10)
+    # grid.addWidget(widgets["label10"][-1], 3, 6, 4, 1)
 
-    grid.addLayout(hbox_layout, 3, 6, 4, 2)
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+    # grid.addLayout(vbox_trash_layout, 3, 7, 4, 1)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 8, 7, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
 
     button2.clicked.connect(lambda: part_number_generate_for_frame6(lineEdit2, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText()))
+    button3.clicked.connect(export_data_to_excel)
 
 #*********************************************
 #                  FRAME 7
@@ -1261,7 +1384,7 @@ def frame7(part_choose, type_choose, kind_choose):
     # widgets["logo"].append(logo)
 
     #button widget
-    button1 = create_button("輸入", "#01C7C7", 0, 0)
+    button1 = create_button("輸入", "#008E8E", 0, 0)
     #button callback
     # button.clicked.connect(start_game)
     widgets["button_input"].append(button1)
@@ -1407,6 +1530,7 @@ def frame7(part_choose, type_choose, kind_choose):
 
     #LineEdit widget
     lineEdit2 = create_lineedit(0,0)
+    lineEdit2.setReadOnly(True)
     widgets["line_bar2"].append(lineEdit2)
     grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
 
@@ -1424,19 +1548,19 @@ def frame7(part_choose, type_choose, kind_choose):
     grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
 
     #QBoxLayout for produced part
-    label12 = create_label("", 0, 0)
-    widgets["label12"].append(label12)
-    grid.addWidget(widgets["label12"][-1], 3, 6, 4, 2)
+    # label12 = create_label("", 0, 0)
+    # label12.setStyleSheet("background: #DFDFDF")
+    # widgets["label12"].append(label12)
+    # grid.addWidget(widgets["label12"][-1], 3, 6, 4, 1)
 
-    
-    hbox_layout.addWidget(QLabel('HBox Label 1'))
-    grid.addLayout(hbox_layout, 3, 6, 4, 2)
+    grid.addWidget(Pannel, 3, 6, 4, 1)
+    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
 
     button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 8, 7, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
 
     button2.clicked.connect(lambda: part_number_generate_for_frame7(lineEdit2, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText(), widgets["selected_box7"][-1].currentText(),  widgets["selected_box8"][-1].currentText()))
     button3.clicked.connect(export_data_to_excel)

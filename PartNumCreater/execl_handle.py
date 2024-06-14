@@ -107,12 +107,11 @@ def execl_size_read(df, key_list: list):
     for item in key_list:
         size_value.clear()
         for i in range(len(storage_list)):
-            if (storage_list[i][0] == item.strip()):
+            if (storage_list[i][0].strip() == item.strip()):
                 if ({str(column_values[storage_list[i][2]]).strip():str(column_values_code[storage_list[i][2]])} not in size_value):
                     size_value.append({str(column_values[storage_list[i][2]]).strip():str(column_values_code[storage_list[i][2]])})
                     return_value.update({item:copy.deepcopy(size_value)})
         
-
     return return_value
 
 def execl_percentage_read(df, key_list: list):
@@ -136,7 +135,7 @@ def execl_percentage_read(df, key_list: list):
     for item in key_list:
         percentage_value.clear()
         for i in range(len(storage_list)):
-            if (storage_list[i][0] == item):
+            if (storage_list[i][0].strip() == item.strip()):
                 percentage_value.append({str(column_values[storage_list[i][2]]).strip().replace('\u3000','').replace(' ',''):str(column_values_code[storage_list[i][2]])})
                 return_value.update({item:copy.deepcopy(percentage_value)})
 
@@ -163,7 +162,7 @@ def execl_capacity_read(df, key_list: list):
     for item in key_list:
         capacity_value.clear()
         for i in range(len(storage_list)):
-            if (storage_list[i][0] == item):
+            if (storage_list[i][0].strip() == item.strip()):
                 capacity_value.append({str(column_values[storage_list[i][2]]).strip():str(column_values_code[storage_list[i][2]])})
                 return_value.update({item:copy.deepcopy(capacity_value)})
 
@@ -190,7 +189,7 @@ def execl_voltage_read(df, key_list: list):
     for item in key_list:
         voltage_value.clear()
         for i in range(len(storage_list)):
-            if (storage_list[i][0] == item):
+            if (storage_list[i][0].strip() == item.strip()):
                 voltage_value.append({str(column_values[storage_list[i][2]]).strip():str(column_values_code[storage_list[i][2]])})
                 return_value.update({item:copy.deepcopy(voltage_value)})
 
@@ -217,7 +216,7 @@ def execl_manufacturer_read(df, key_list: list):
     for item in key_list:
         manufacturer_value.clear()
         for i in range(len(storage_list)):
-            if (storage_list[i][0] == item):
+            if (storage_list[i][0].strip() == item.strip()):
                 manufacturer_value.append({str(column_values[storage_list[i][2]]).strip():str(column_values_code[storage_list[i][2]])})
                 return_value.update({item:copy.deepcopy(manufacturer_value)})
 
@@ -244,7 +243,7 @@ def execl_supplier_read(df, key_list: list):
     for item in key_list:
         manufacturer_value.clear()
         for i in range(len(storage_list)):
-            if (storage_list[i][0] == item):
+            if (storage_list[i][0].strip() == item.strip()):
                 manufacturer_value.append({str(column_values[storage_list[i][2]]).strip():str(column_values_code[storage_list[i][2]])})
                 return_value.update({item:copy.deepcopy(manufacturer_value)})
 

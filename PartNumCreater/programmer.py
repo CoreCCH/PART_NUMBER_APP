@@ -13,20 +13,19 @@ app = QApplication(sys.argv)
 for i in range(10):
     for j in range(8):
         label = QLabel()
-        label.setStyleSheet("background: '#FFFFFF';")
-        if(j == 5 or j == 0):
+        if(j == 5 or j == 0 or j == 7):
             label.setFixedWidth(60)  # 设置每个标签的固定大小为 100x100 像素
         elif(i == 0 or i == 9):
             label.setFixedHeight(30)
         elif(j == 1 or j == 3):
             label.setFixedWidth(100)
         else:
-            label.setFixedSize(180, 80)  # 设置每个标签的固定大小为 100x100 像素
+            label.setFixedSize(210, 80)  # 设置每个标签的固定大小为 100x100 像素
         grid.addWidget(label, i, j, 1, 1)
 
 #window and settings
 window = QWidget()
-window.setWindowTitle("Who wants to be a programmer???")
+window.setWindowTitle("料號產生器")
 # window.setFixedWidth(1000)
 #place window in (x,y) coordinates
 # window.move(2700, 200)
