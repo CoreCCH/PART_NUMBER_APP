@@ -2,7 +2,6 @@ import pandas as pd
 import copy
 
 
-
 data = {}
 list_data = []
 
@@ -84,7 +83,11 @@ def excel_type_read(df):
 
     return key_list, return_value
 
-
+def excel_type_read_supplier(df):
+    column_values = df.iloc[:, 1]
+    company_dict = [company.split()[0] for company in column_values]
+    return company_dict
+ 
 def execl_size_read(df, key_list: list):
     size_value = []
     storage_list = []
@@ -269,9 +272,24 @@ def append_data_to_excel(file_path, part_number, values, headers):
     
     existing_df = pd.concat([existing_df, new_row], ignore_index=True)
 
-    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-        existing_df.to_excel(writer, index=False, header=headers)
+    try:
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+            existing_df.to_excel(writer, index=False, header=headers)
+    except:
+        from component import show_alert
+        show_alert("儲存物料["+part_number+"]時發生錯誤\nOutput.xlxs已被使用")
+        return False
 
+    return True
+
+def execl_stock_record(part_number, in_stock_date, count, stock_place):
+    try:
+        existing_df = pd.read_excel("stock_record.xlxs")
+    except FileNotFoundError:
+        existing_df = pd.DataFrame(columns=["物料編碼","入庫日期","數量","倉庫"])
+
+
+    
 # df = excel_file_read('曜璿東命名規則 20240605-2.xlsx', '命名規則')
 # df2 = excel_file_read('曜璿東命名規則 20240605-2.xlsx', '電容種類規則')
 
@@ -286,3 +304,7 @@ def append_data_to_excel(file_path, part_number, values, headers):
 # execl_voltage_read(df, list_data)
 # execl_manufacturer_read(df, list_data)
 # print(execl_supplier_read(df, list_data))
+
+# df = excel_file_read('曜璿東命名規則 20240605-2.xlsx', '命名規則')
+# df_supplier = excel_file_read('曜璿東命名規則 20240605-2.xlsx', '供應商編碼')
+# excel_type_read_supplier(df_supplier)
