@@ -1,325 +1,379 @@
-from PyQt5.QtWidgets import QVBoxLayout, QTextEdit
+import Name_Rule_SQL_handler
+from component import main_page_widgets, create_table, create_lineedit, clear_widgets, create_button, create_label, create_combobox, grid, show_alert
+from component import part_code_generate_page_widget as widgets
+from component import part_code_generate_page_hide_widget as hide_widgets
+from PyQt5.QtCore import Qt
+import SQL_handler
 import execl_handle
+from PyQt5.QtWidgets import QTableWidgetItem, QTextEdit, QDialog, QVBoxLayout, QFileDialog
 from datetime import datetime
-from component import grid, generate_page_widgets as widgets, clear_widgets, main_page_widgets, create_button, create_combobox,create_label,create_lineedit, show_alert
 
-df = execl_handle.excel_file_read('曜璿東命名規則 20240605-2.xlsx', '命名規則')
-df2 = execl_handle.excel_file_read('曜璿東命名規則 20240605-2.xlsx', '電容種類規則')
-df_supplier = execl_handle.excel_file_read('曜璿東命名規則 20240605-2.xlsx', '供應商編碼')
-
-#import combo box data
-object_data = execl_handle.excel_list_read(df)
-object_selected = [list(d.keys())[0] for d in object_data]
-object_selection, type_data = execl_handle.excel_type_read(df)
-size_data = execl_handle.execl_size_read(df, object_selection)
-percentage_data = execl_handle.execl_percentage_read(df, object_selection)
-capacity_data = execl_handle.execl_capacity_read(df, object_selection)
-voltage_data = execl_handle.execl_voltage_read(df, object_selection)
-resistance_data = execl_handle.execl_capacity_read(df, object_selection)
-manufacturer_data = execl_handle.execl_manufacturer_read(df, object_selection)
-supplier_data = execl_handle.excel_type_read_supplier(df_supplier) # {'佰祥電子有限公司 WIIWELL ELECTRONIC LTD.': '00', '台灣天河星科技有限公司': '01' }
-kind_data = execl_handle.execl_size_read(df, object_selection)
-name_data = execl_handle.execl_capacity_read(df, object_selection)
-capacity_change = execl_handle.add_capacity(df2)
-
-headers = ["part_number", "品項編號", "品項名稱", "項目", "種類", "尺寸/種類","%數", "容值/阻值/名稱", "電壓", "廠商", "供應商", "產生時間"]
-file_path = 'output.xlsx'
 output_data = {}
-output_df = execl_handle.check_output_existing(file_path, headers)
-check_buffer = [output_df.iloc[:, 0][i] for i in range(output_df.iloc[:, 0].size)] if output_df is not None else []
-part_code = int([output_df.iloc[:, 1][i] for i in range(output_df.iloc[:, 0].size)][-1].split("C")[-1])+1 if output_df is not None else 1
-
-vbox_label_layout = QVBoxLayout()
-# vbox_trash_layout = QVBoxLayout()
 Pannel = None
 
-#dictionary to store local pre-load parameters on a global level
-parameters = {
-    "part_object": [],
-    "part_type": [],
-    "part_size": [],
-    "part_coefficient": [],
-    "part_percentage": [],
-    "part_capacity": [],
-    "part_voltage": [],
-    "part_manufacturer": [],
-    "part_supplier": [],
-    "part_resistance": [],
-    "part_kind":[],
-    "part_name":[],
-}
+def button1_click():
+    part_code_generator_page()
 
-#save parts all information
-itemslist= {}
+def button2_click():
+    create_module_page()
 
-part_number_label = {}
-part_number_button= {}
+def button3_click():
+    add_selection_page()
 
-def clear_parameters(parameters):
-    for key in parameters:
-        parameters[key].clear()
+def back_to_main_page():
+    from main_page import main_page
+    Pannel.hide()
+    Pannel.setVisible(False)
+    main_page()
 
-def combo_part_object_change(index: int):
-    frame2(index)
+def combo_part_item_change(item, category, type, item_combo, category_combo, type_combo, _hide_widgets):
+    category_combo.setDisabled(False)
 
-def combo_part_type_change(index1: int, index2: int, text1: str, text2: str):
-    if (text1 == "SMT" and text2 == "電容"):
-        frame3(index1, index2)
-    elif (text1 == "SMT" and  text2 == "電阻"):
-        frame4(index1, index2)
+    item_category_list_table = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name":item}, 'item_correspond_category')
+
+    if isinstance(item_category_list_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {item_category_list_table}')
+        category_list= [item[1] for item in item_category_list_table]
+    else: 
+        category_list = [item[1] for item in item_category_list_table]
+        category_combo.clear()
+        category_combo.addItems(category_list)
+        category_combo.view().setMinimumWidth(300)
+
+    category = category_combo.currentText()
+
+    type_list_table = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name":item, "Category_Name":category}, table_name= "type_list")
+
+    if isinstance(type_list_table, str):
+        show_alert(f"讀取命名規則時發生錯誤: {type_list_table}")
+        return
+    
+    type_list= [item[3] for item in type_list_table]
+
+    type_combo.clear()
+    type_combo.addItems(type_list)
+    type_combo.setDisabled(False)
+    type = type_combo.currentText()
+
+    col_module = Name_Rule_SQL_handler.fetch_data_from_table({"NUM1": item, "NUM2": category if type == "" else category + "_" + type}, table_name= "col_module")
+    # print(f"Item Change:{item}, {category}, {type}")
+    
+    correspond_table = Name_Rule_SQL_handler.get_table_data('correspond_table')
+    correspond_dict = {key: value for key, value in correspond_table}
+
+
+    if isinstance(col_module, str):
+        show_alert(f"讀取命名規則時發生錯誤: {col_module}")
+        return
+    elif col_module == []:
+        for num in range(2, 11):
+            _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(False)
+            _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(False)
     else:
-        frame5(index1, index2)
+        for num in range(2, len(col_module[0])-1):
+            if col_module[0][num] != None:
+                _hide_widgets["label_NUM"+str(num+1)][-1].setText(col_module[0][num])
+                _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(True)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(True)
+                
+                data = Name_Rule_SQL_handler.get_table_data(correspond_dict[col_module[0][num]])
+                
 
-def combo_part_kind_change(index1: int, index2: int, index3: int, text1: str, text2: str, text3: str):
-    if ("電容" in text3):
-        frame7(index1, index2, index3)
-    else:    
-        frame6(index1, index2, index3)
-
-def part_number_generate_for_frame3(line_edit1, line_edit2, object: str, type: str, size: str, coefficient:str, percentage: str, capacity: str, voltage: str, manufacturer: str, supplier: str):
-    # capacity generate
-    part_number = ""
-
-    check = True
-
-    if (object == ""):
-        show_alert("請選擇料件項目")
-        check = False
-    if(type == ""):
-        show_alert("請選擇料件種類")
-        check = False
-    if(size == ""):
-        show_alert("請選擇料件尺寸")
-        check = False
-    if(coefficient == ""): 
-        show_alert("請選擇料件係數")
-        check = False 
-    if(percentage == ""):
-        show_alert("請選擇料件%數")
-        check = False
-    if(capacity == ""):
-        show_alert("請選擇料件容值")
-        check = False
-    if(voltage == ""):
-        show_alert("請選擇料件電壓")
-        check = False
-    if(check == False): return False
-
-    part_number += str(next((item[object] for item in object_data if object in item), None))
-
-    part_number += str(next((item[type] for item in type_data[object] if type in item), None))
-
-    part_number += str(next((item[size] for item in size_data[type] if size in item), None))
-
-    part_number += capacity_change[coefficient][capacity_change["X7R"].index(next((item[percentage] for item in percentage_data[type] if percentage in item), None))] if coefficient in capacity_change else ""
-
-    part_number += str(next((item[capacity] for item in capacity_data[type] if capacity in item), None))
-
-    part_number += str(next((item[voltage] for item in voltage_data[type] if voltage in item), None))
-
-    part_number += '0' if manufacturer == '' else str(next((item[manufacturer] for item in manufacturer_data[type] if manufacturer in item), None))
-   
-    part_number += '00' if supplier == '' else str(supplier_data.index(supplier)).zfill(2)
-
-    line_edit1.setText(part_number)
-
-    part_name= ""
-
-    part_name= coefficient+","+str(next((item[capacity] for item in capacity_data[type] if capacity in item), None))+"/"+voltage+","+percentage.split("±")[-1]+","+size+" ("+ manufacturer +")"
-
-    line_edit2.setText(part_name)
-
-    current_time = datetime.now()
-
-    global output_data
-    global part_code
+                if col_module[0][num] == "種類":
+                    data_list= [val[3] for val in data if val[1] == item and val[2] == category]
+                else:
+                    if(len(data[0]) == 2):
+                        data_list= [val[1] for val in data]
+                    else:
+                        if type != "":
+                            data_list= [val[4] for val in data if val[1] == item and val[2] == category and val[3] == type]
+                        else:
+                            data_list= [val[4] for val in data if val[1] == item and val[2] == category]
+                _hide_widgets["combo_NUM"+str(num+1)][-1].clear()
+                _hide_widgets["combo_NUM"+str(num+1)][-1].addItems(data_list)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].view().setMinimumWidth(500)
+            else:
+                _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(False)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(False)
     
-    if (part_number not in check_buffer):
-        if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), part_name, object, type, size, percentage, voltage, capacity, manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
-            part_code += 1
-            global Pannel
-            Pannel.append(part_number)
+        if col_module[0][2] == "種類":
+            _hide_widgets["combo_NUM3"][-1].setDisabled(True)
+            _hide_widgets["combo_NUM3"][-1].setCurrentText(type)
+        elif col_module[0][2] != "種類":
+            _hide_widgets["combo_NUM3"][-1].setDisabled(False)
+
+        if item == "SMT" and category == "電容":
+            _hide_widgets["label_NUM12"][-1].setText("特殊規格")
+            _hide_widgets["combo_NUM12"][-1].clear()
+            data = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name": "SMT", "Category_Name": "電容"},'percentage_list')
+            # print(data)
+            unique_data = set(item[3] for item in data)
+            unique_data_list = list(unique_data)
+            _hide_widgets["combo_NUM12"][-1].addItems(unique_data_list)
+            _hide_widgets["label_NUM12"][-1].setVisible(True)
+            _hide_widgets["combo_NUM12"][-1].setVisible(True)
+        else:
+            _hide_widgets["label_NUM12"][-1].setVisible(False)
+            _hide_widgets["combo_NUM12"][-1].setVisible(False)
+
+def combo_table_item_change(item, category, type, item_combo, category_combo, type_combo, _hide_widgets):
+    category_combo.setDisabled(False)
+
+    item_category_list_table = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name":item}, 'item_correspond_category')
+
+    if isinstance(item_category_list_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {item_category_list_table}')
+        category_list= [item[1] for item in item_category_list_table]
+    else: 
+        category_list = [item[1] for item in item_category_list_table]
+        category_combo.clear()
+        category_combo.addItems(category_list)
+        category_combo.view().setMinimumWidth(300)
+
+    category = category_combo.currentText()
+
+def combo_part_category_change(item, category, type, item_combo, category_combo, type_combo, _hide_widgets):
+    if item == "": return
+    if category == "": return
+    
+    type_list_table = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name":item, "Category_Name":category}, table_name="type_list")
+
+    if isinstance(type_list_table, str):
+        show_alert(f"讀取命名規則時發生錯誤: {type_list_table}")
+        return
+    
+    type_list= [item[3] for item in type_list_table]
+
+    type_combo.clear()
+    type_combo.addItems(type_list)
+    type_combo.setDisabled(False)
+    type = type_combo.currentText()
+
+    col_module = Name_Rule_SQL_handler.fetch_data_from_table({"NUM1": item, "NUM2": category if type == "" else category + "_" + type}, table_name= "col_module")
+    correspond_table = Name_Rule_SQL_handler.get_table_data('correspond_table')
+    correspond_dict = {key: value for key, value in correspond_table}
+
+    if isinstance(col_module, str):
+        show_alert(f"讀取命名規則時發生錯誤: {col_module}")
+        return
+    elif col_module == []:
+        for num in range(2, 11):
+            _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(False)
+            _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(False)
     else:
-        show_alert("已存在料號: "+ part_number)
+        for num in range(2, len(col_module[0])-1):
+            if col_module[0][num] != None:
+                _hide_widgets["label_NUM"+str(num+1)][-1].setText(col_module[0][num])
+                _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(True)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(True)
 
-def part_number_generate_for_frame4(line_edit1, line_edit2, object: str, type: str, size: str, percentage: str, resistance: str, manufacturer: str, supplier: str):
-    # capacity generate
-    part_number = ""
+                data = Name_Rule_SQL_handler.get_table_data(correspond_dict[col_module[0][num]])
+                if col_module[0][num] == "種類":
+                    data_list= [val[3] for val in data if val[1] == item and val[2] == category]
+                else:
+                    if(len(data[0]) == 2):
+                        data_list= [val[1] for val in data]
+                    else:
+                        if type != "":
+                            data_list= [val[4] for val in data if val[1] == item and val[2] == category and val[3] == type]
+                        else:
+                            data_list= [val[4] for val in data if val[1] == item and val[2] == category]
 
-    check = True
+                _hide_widgets["combo_NUM"+str(num+1)][-1].clear()
+                _hide_widgets["combo_NUM"+str(num+1)][-1].addItems(data_list)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].view().setMinimumWidth(500)
+            else:
+                _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(False)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(False)
     
-    if (object == ""):
-        show_alert("請選擇料件項目")
-        check = False
-    if(type == ""):
-        show_alert("請選擇料件種類")
-        check = False
-    if(size == ""):
-        show_alert("請選擇料件尺寸")
-        check = False
-    if(percentage == ""):
-        show_alert("請選擇料件%數")
-        check = False
-    if(resistance == ""):
-        show_alert("請選擇料件組值")
-        check = False
-    if(check == False): return False
+        if col_module[0][2] == "種類":
+            _hide_widgets["combo_NUM3"][-1].setDisabled(True)
+            _hide_widgets["combo_NUM3"][-1].setCurrentText(type)
+        elif col_module[0][2] != "種類":
+            _hide_widgets["combo_NUM3"][-1].setDisabled(False)
 
-    part_number += str(next((item[object] for item in object_data if object in item), None))
+        if item == "SMT" and category == "電容":
+            _hide_widgets["label_NUM12"][-1].setText("特殊規格")
+            _hide_widgets["combo_NUM12"][-1].clear()
+            data = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name": "SMT", "Category_Name": "電容"},'percentage_list')
+            unique_data = set(item[3] for item in data)
+            unique_data_list = list(unique_data)
+            _hide_widgets["combo_NUM12"][-1].addItems(unique_data_list)
+            _hide_widgets["label_NUM12"][-1].setVisible(True)
+            _hide_widgets["combo_NUM12"][-1].setVisible(True)
+        else:
+            _hide_widgets["label_NUM12"][-1].setVisible(False)
+            _hide_widgets["combo_NUM12"][-1].setVisible(False)
 
-    part_number += str(next((item[type] for item in type_data[object] if type in item), None))
-
-    part_number += str(next((item[size] for item in size_data[type] if size in item), None))
-
-    part_number += str(next((item[percentage] for item in percentage_data[type] if percentage in item), None))
-
-    part_number += str(next((item[resistance] for item in resistance_data[type] if resistance in item), None))
-
-    part_number += '0' if manufacturer == '' else str(next((item[manufacturer] for item in manufacturer_data[type] if manufacturer in item), None))
-   
-    part_number += '00' if supplier == '' else str(supplier_data.index(supplier)).zfill(2)
-
-    line_edit1.setText(part_number)
-
-    part_name= ""
-
-    part_name= resistance.split("Ω")[0]+","+percentage.split("±")[-1]+",1/4W,"+","+size+" ("+ manufacturer +")"
-
-    line_edit2.setText(part_name)
-
-    current_time = datetime.now()
-
-    global output_data
-    global part_code
+def combo_table_category_change(item, category, type, item_combo, category_combo, type_combo, _hide_widgets):
+    if item == "": return
+    if category == "": return
     
-    if (part_number not in check_buffer):
-        if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), part_name, object, type, size, percentage, "", resistance, manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
-            part_code += 1
-            global Pannel
-            Pannel.append(part_number)
+    type_list_table = Name_Rule_SQL_handler.fetch_data_from_table({"Item_Name":item, "Category_Name":category}, table_name="type_list")
+
+    if isinstance(type_list_table, str):
+        show_alert(f"讀取命名規則時發生錯誤: {type_list_table}")
+        return
+    
+    type_list= [item[3] for item in type_list_table]
+
+    type_combo.clear()
+    type_combo.addItems(type_list)
+    type_combo.setDisabled(False)
+    type = type_combo.currentText()
+
+def combo_part_type_change(item, category, type, item_combo, category_combo, type_combo, _hide_widgets):
+    if item == "": return
+    if category == "": return
+    if type == "": return
+
+    col_module = Name_Rule_SQL_handler.fetch_data_from_table({"NUM1": item, "NUM2": category + "_" + type}, table_name= "col_module")
+    correspond_table = Name_Rule_SQL_handler.get_table_data('correspond_table')
+    correspond_dict = {key: value for key, value in correspond_table}
+
+    if isinstance(col_module, str):
+        show_alert(f"讀取命名規則時發生錯誤: {col_module}")
+        return
+    elif col_module == []:
+        for num in range(2, 11):
+            _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(False)
+            _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(False)
     else:
-        show_alert("已存在料號: "+ part_number)
-
-def part_number_generate_for_frame6(line_edit1, object: str, type: str, kind: str, name: str, manufacturer: str, supplier: str):
-    # capacity generate
-    part_number = ""
-
-    check = True
-
-    if (object == ""):
-        show_alert("請選擇料件項目")
-        check = False
-    if(type == ""):
-        show_alert("請選擇料件種類")
-        check = False
-    if(kind == ""):
-        show_alert("請選擇料件種類")
-        check = False
-    if(name == ""):
-        show_alert("請選擇料件名稱")
-        check = False
-    if(check == False): return False
-
-    part_number += str(next((item[object] for item in object_data if object in item), None))
-
-    part_number += str(next((item[type] for item in type_data[object] if type in item), None))
-
-    
-
-    part_number += str(next((item[kind] for item in kind_data[type] if kind in item), None))
-
-    part_number += str(next((item[name] for item in name_data[type] if name in item), None)).zfill(5)
-
-    part_number += '0' if manufacturer == '' else str(next((item[manufacturer] for item in manufacturer_data[type] if manufacturer in item), None))
-   
-    part_number += '00' if supplier == '' else str(supplier_data.index(supplier)).zfill(2)
-
-    line_edit1.setText(part_number)
-
-    current_time = datetime.now()
-
-    global output_data
-    global part_code
-    global vbox_label_layout
-    global scrollArea
-    # global vbox_trash_layout
-    
-    if (part_number not in check_buffer):
-        if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), "", object, type, kind, "", name, "", manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
-            part_code += 1
-            # globals()['label'+part_number] = create_label(part_number,0,0)
-            # globals()['button'+part_number] = create_button("delete","#DFDFDF",0,0)
-            # vbox_label_layout.addWidget(globals()['label'+part_number])
-            # part_name_list = ""
-            global Pannel
-            Pannel.append(part_number)
+        # print(col_module[0])
+        for num in range(2, len(col_module[0])-1):
+            if col_module[0][num] != None:
+                _hide_widgets["label_NUM"+str(num+1)][-1].setText(col_module[0][num])
+                _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(True)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(True)
             
-            # vbox_trash_layout.addWidget(globals()['button'+part_number])
-    else:
-        show_alert("已存在料號: "+ part_number)
+                data = Name_Rule_SQL_handler.get_table_data(correspond_dict[col_module[0][num]])
+                if col_module[0][num] == "種類":
+                    data_list= [val[3] for val in data if val[1] == item and val[2] == category]
+                else:
+                    if(len(data[0]) == 2):
+                        data_list= [val[1] for val in data]
+                    else:
+                        data_list= [val[4] for val in data if val[1] == item and val[2] == category and val[3] == type]
 
-def part_number_generate_for_frame7(line_edit1, object: str, type: str, kind: str, percentage: str, name: str, voltage: str, manufacturer: str, supplier: str):
-
-    # capacity generate
-    part_number = ""
+                _hide_widgets["combo_NUM"+str(num+1)][-1].clear()
+                _hide_widgets["combo_NUM"+str(num+1)][-1].addItems(data_list)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].view().setMinimumWidth(500)
+            else:
+                _hide_widgets["label_NUM"+str(num+1)][-1].setVisible(False)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].setVisible(False)
+                _hide_widgets["combo_NUM"+str(num+1)][-1].clear()
     
-    check = True
+        if col_module[0][2] == "種類":
+            _hide_widgets["combo_NUM3"][-1].setDisabled(True)
+            _hide_widgets["combo_NUM3"][-1].setCurrentText(type)
+        elif col_module[0][2] != "種類":
+            _hide_widgets["combo_NUM3"][-1].setDisabled(False)
 
-    if (object == ""):
-        show_alert("請選擇料件項目")
-        check = False
-    if(type == ""):
-        show_alert("請選擇料件種類")
-        check = False
-    if(kind == ""):
-        show_alert("請選擇料件種類")
-        check = False
-    if(name == ""):
-        show_alert("請選擇料件名稱")
-        check = False 
-    if(voltage == ""):
-        show_alert("請選擇料件電壓")
-        check = False
-    if(check == False): return False
+def create_erp_code(item, category, type, line_bar_pn, lineEdit3,_widgets, _hide_widgets):
+    
+    ERP_Code = ''
+    material_name = ''
+
+    if _widgets["line_bar_pn"][-1].text() == "":
+        show_alert("請填入Part Number")
+        return
+    
+    if item == "":
+        show_alert("未選擇項目")
+        return
+    else: 
+        ERP_Code += Name_Rule_SQL_handler.fetch_data_from_table({"Name":item},"item_list")[0][0]    
+
+    if category == "":
+        show_alert("未選擇種類1")
+        return
+    else: 
+        ERP_Code += Name_Rule_SQL_handler.fetch_data_from_table({"Name":category},"category_list")[0][0]
+
+    col_module = Name_Rule_SQL_handler.fetch_data_from_table({"NUM1": item, "NUM2": category if type == "" else category + "_" + type}, table_name= "col_module")
+    correspond_table = Name_Rule_SQL_handler.get_table_data('correspond_table')
+    correspond_dict = {key: value for key, value in correspond_table}
+
+    for num in range(2, len(col_module[0])-1):
+        if(col_module[0][num] != None):
+            data = Name_Rule_SQL_handler.get_table_data(correspond_dict[col_module[0][num]])
+            # print(data)
+            if(len(data[0]) == 2):
+                data_list= [val[0] for val in data if val[1] == _hide_widgets["combo_NUM"+str(num+1)][-1].currentText()]
+            
+            elif(len(data[0]) == 5):
+                data_list= [val[0] for val in data if val[1] == item and val[2] == category and val[3] == _hide_widgets["combo_NUM"+str(num+1)][-1].currentText()]
+                
+            elif(item == "SMT" and category == "電容" and col_module[0][num] == "%數"):
+                
+                data_list= [val[0] for val in data if val[1] == item and val[2] == category and val[3] == _hide_widgets["combo_NUM12"][-1].currentText() and val[4] == _hide_widgets["combo_NUM"+str(num+1)][-1].currentText()]
+            
+            elif(type == ""):
+                data_list= [val[0] for val in data if val[1] == item and val[2] == category and val[4] == _hide_widgets["combo_NUM"+str(num+1)][-1].currentText()]
+            
+            else:
+                # print(data)
+                # print(f"value:{_hide_widgets["combo_NUM"+str(num+1)][-1].currentText()}")
+                data_list= [val[0] for val in data if val[1] == item and val[2] == category and val[3] == type and val[4] == _hide_widgets["combo_NUM"+str(num+1)][-1].currentText()]
+                
+            ERP_Code = ERP_Code + data_list[0]
+
+    if "零件名稱" == col_module[0][7]:
+        material_name = _hide_widgets["combo_NUM8"][-1].currentText().split('(')[0]
+    else:
+        for num in range(2, len(col_module[0])-4):
+            if(col_module[0][num] != None):
+                if col_module[0][num] == "%數" and item == "SMT" and category == "電容":
+                    material_name = material_name + f"{_hide_widgets["combo_NUM12"][-1].currentText()} {_hide_widgets["combo_NUM"+str(num+1)][-1].currentText()},"
+                else:
+                    material_name = material_name + _hide_widgets["combo_NUM"+str(num+1)][-1].currentText() + ','
+
   
-    part_number += str(next((item[object] for item in object_data if object in item), None))
-
-    part_number += str(next((item[type] for item in type_data[object] if type in item), None))
-
-    part_number += str(next((item[kind] for item in kind_data[type] if kind in item), None))
-
-    part_number += '0' if percentage == '' else str(next((item[percentage] for item in percentage_data[type] if percentage in item), None))
-
-    part_number += str(next((item[name] for item in name_data[type] if name in item), None))
-
-    part_number += str(next((item[voltage] for item in voltage_data[type] if voltage in item), None))
-
-    part_number += '0' if manufacturer == '' else str(next((item[manufacturer] for item in manufacturer_data[type] if manufacturer in item), None))
-
-    part_number += '00' if supplier == '' else str(supplier_data.index(supplier)).zfill(2)
-
-    line_edit1.setText(part_number)
+    _widgets["line_bar2"][-1].setText(ERP_Code)
+    lineEdit3.setText(material_name)
 
     current_time = datetime.now()
 
-    global output_data
-    global part_code
-    
-    if (part_number not in check_buffer):
-        if (part_number not in output_data):
-            output_data.update({part_number:["C"+str(part_code).zfill(5), "", object, type, kind, percentage, name, voltage, manufacturer,supplier, str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}"]})
-            part_code += 1
+    if(len(ERP_Code) != 11):
+        show_alert("生成編碼長度有誤")
+        return
+
+    output_df = SQL_handler.get_table_data('Material')
+    if isinstance(output_df, str):
+        show_alert((f"Error: {output_df}"))
+        return
+
+    check_buffer = [output_df[i][0] for i in range(len(output_df))] if output_df is not None else []
+
+    #type = _hide_widgets["combo_NUM3"][-1].currentText() ??
+    if type == "": type = None
+
+    if (ERP_Code not in check_buffer):
+        if (ERP_Code not in output_data):
+            if (_hide_widgets["label_NUM8"][-1].text()== "零件名稱"):
+                output_data.update({ERP_Code:["", material_name, item, category, type, _hide_widgets["combo_NUM4"][-1].currentText(), 
+                                            f"{_hide_widgets["combo_NUM5"][-1].currentText()}{_hide_widgets["combo_NUM6"][-1].currentText()}{_hide_widgets["combo_NUM7"][-1].currentText()}{_hide_widgets["combo_NUM8"][-1].currentText()}", 
+                                            None, _hide_widgets["combo_NUM9"][-1].currentText(), _hide_widgets["combo_NUM11"][-1].currentText(), 
+                                            str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}", line_bar_pn.text()]})
+            else: 
+                output_data.update({ERP_Code:["", material_name, item, category, type, _hide_widgets["combo_NUM4"][-1].currentText(), 
+                                            f"{_hide_widgets["combo_NUM5"][-1].currentText()}{_hide_widgets["combo_NUM6"][-1].currentText()}{_hide_widgets["combo_NUM7"][-1].currentText()}", 
+                                            _hide_widgets["combo_NUM8"][-1].currentText(), _hide_widgets["combo_NUM9"][-1].currentText(), _hide_widgets["combo_NUM11"][-1].currentText(), 
+                                            str(current_time.date())+" "+f"{current_time.hour}:{current_time.minute}:{current_time.second}", line_bar_pn.text()]})
+            # part_code += 1
             global Pannel
-            Pannel.append(part_number)
+            Pannel.append(ERP_Code)
+            line_bar_pn.clear()
+
+            
     else:
-        show_alert("已存在料號: "+ part_number)
-        
-def export_data_to_excel():
+        show_alert("已存在料號: "+ ERP_Code)
+
+def export_data_to_SQL():
+    from longin_page import user
     for part_number, values in list(output_data.items()):
-        _result = execl_handle.append_data_to_excel(file_path, part_number, values, headers)
+        data = [part_number] + values + [user]
+        _result = SQL_handler.add_data_to_Material_table(data)
         if (_result == True):
             del output_data[part_number]
     
@@ -327,504 +381,479 @@ def export_data_to_excel():
     Pannel.clear()
     for part_number in output_data:
         Pannel.append(part_number)
-    
-    global check_buffer
-    output_df = execl_handle.check_output_existing(file_path, headers)
-    check_buffer = [output_df.iloc[:, 0][i] for i in range(output_df.iloc[:, 0].size)] if output_df is not None else []
 
-def contains_keyword(lst, keyword):
-    for index, item in enumerate(lst):
-        if(keyword in item):
-            return index
+def insert_row_to_table(table):
+    new_row_index = table.rowCount()
+    table.insertRow(new_row_index)
 
-def get_indices(lst, value):
-    for index, item in enumerate(lst):
-        if (item == value):
-            return index # None
+    for col in range(table.columnCount()):
+        item = QTableWidgetItem()
+        if col == table.columnCount() - 1:
+            # Make the item in the last column not editable
+            if col != 1:
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        table.setItem(new_row_index, col, item)
+
+def update_row_to_table(col_name, table, _hide_widget, Item = "", Category = "", Type = ""):
+    table_list = Name_Rule_SQL_handler.fetch_data_from_table({"Col_Name": col_name},'correspond_table')
+    table_list_name = table_list[0][1]
+
+    columns = Name_Rule_SQL_handler.get_column_names(table_list_name)
+
+    key = columns[-1]
+
+    all_data = []
+    for row in range(table.rowCount()):
+        row_data = []
         
-def pad_list(lst, target_length):
-    while len(lst) < target_length:
-        lst.append('')
-    return lst
+        for column in range(table.columnCount()):
+            item = table.item(row, column)
+            if column == 5:
+                row_data.append(int(item.text()) if (item != None and item.text() != '') else None)
+            else:
+                row_data.append(item.text() if (item != None and item.text() != '' and item.text() != 'None') else None)
+        all_data.append(row_data)
 
-def sequence_input(squence: str):
-    _list = squence.replace(" ", "").split(',')
-    pad_list(_list,9)
-    if('DIP'.casefold() in _list and contains_keyword(_list, "電容") != None):
-        object_choose = get_indices(parameters["part_object"][-1], "DIP")
-        parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[get_indices(parameters["part_object"][-1], "DIP")]]])
-        type_choose = get_indices(parameters["part_type"][-1], _list[1])
-        if(type_choose == None):
-            type_choose = 0
+    all_data = [x for x in all_data if x[0] is not None and x[1] is not None]
 
-        try:
-            parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[_list[1]]])
-            kind_choose = get_indices(parameters["part_kind"][-1], _list[2])
-        except:
-            kind_choose = 0
+    # 使用集合來追踪已見過的組合
+    seen = set()
+    unique_items = []
 
-        frame7(object_choose, type_choose, kind_choose, _list[3], _list[4], _list[5], _list[6], _list[7])
-
-    elif('DIP'.casefold() in _list and contains_keyword(_list, "電容") == None):
-        object_choose = get_indices(parameters["part_object"][-1], "DIP")
-        parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[get_indices(parameters["part_object"][-1], "DIP")]]])
-        type_choose = get_indices(parameters["part_type"][-1], _list[1])
-        if(type_choose == None):
-            type_choose = 0
-
-        try:
-            parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[_list[1]]])
-            kind_choose = get_indices(parameters["part_kind"][-1], _list[2])
-        except:
-            kind_choose = 0
-
-        frame6(object_choose, type_choose, kind_choose, _list[3], _list[4], _list[5])
-
-    elif('SMT'.casefold() in _list and contains_keyword(_list, "電容") == None and contains_keyword(_list, "電阻") == None):
-        object_choose = get_indices(parameters["part_object"][-1], "SMT")
-        parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[get_indices(parameters["part_object"][-1], "SMT")]]])
-        type_choose = get_indices(parameters["part_type"][-1], _list[1])
-        if(type_choose == None):
-            type_choose = 0
-
-        try:
-            parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[_list[1]]])
-            kind_choose = get_indices(parameters["part_kind"][-1], _list[2])
-        except:
-            kind_choose = 0
-
-        frame6(object_choose, type_choose, kind_choose, _list[3], _list[4], _list[5])
-
-    elif('SMT'.casefold() in _list and contains_keyword(_list, "電容") != None):
-        object_choose = get_indices(parameters["part_object"][-1], "SMT")
-        parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[get_indices(parameters["part_object"][-1], "SMT")]]])
-        type_choose = get_indices(parameters["part_type"][-1], _list[1])
-        if(type_choose == None):
-            type_choose = 0
-
-        frame3(object_choose, type_choose, _list[2], _list[3], _list[4], _list[5], _list[6], _list[7], _list[8])
-
-    elif('SMT'.casefold() in _list and contains_keyword(_list, "電阻") != None):
-        object_choose = get_indices(parameters["part_object"][-1], "SMT")
-        parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[get_indices(parameters["part_object"][-1], "SMT")]]])
-        type_choose = get_indices(parameters["part_type"][-1], _list[1])
-        if(type_choose == None):
-            type_choose = 0
-
-        frame4(object_choose, type_choose, _list[2], _list[3], _list[4], _list[5], _list[6], _list[7])
+    if(len(all_data[0]) >= 5):
+        for item in all_data:
+            if len(all_data[0]) == 5:
+                key = (item[1], item[2], item[3])
+            else:
+                key = (item[1], item[2], item[3], item[4])
+            
+            if key not in seen:
+                unique_items.append(item)
+                seen.add(key)
+            else: 
+                # print(f"已移除{item}資料，因項目重複")
+                show_alert(f"已移除{item}資料，因項目重複")
     else:
-        frame6(0, 3, 0, _list[3], _list[4], _list[5])    
+        unique_items = all_data
 
-def back_to_main_page():
-    from main_page import main_page
-    Pannel.hide()
-    main_page()
+    status = Name_Rule_SQL_handler.insert_or_update_table_data(table_name= table_list_name, columns= columns, data= unique_items, unique_key= key)
+ 
+    if status != True:
+        show_alert(f"更新欄位失敗: {status}")
+        return
+    else:
+        show_alert("更新成功!!", "通知")
 
-#*********************************************
-#                  FRAME 1
-#*********************************************
+    show_input(col_name, table, _hide_widget, Item, Category, Type)
 
-def frame1():
-    global parameters
+def del_selected_data(col_name, table, _hide_widget, Item = "", Category = "", Type = ""):
+    table_list = Name_Rule_SQL_handler.fetch_data_from_table({"Col_Name": col_name},'correspond_table')
+    table_list_name = table_list[0][1]
 
+    columns = Name_Rule_SQL_handler.get_column_names(table_list_name)
+
+    key = columns[-1]
+
+    selected_indices = table.selectionModel().selectedIndexes()
+    
+    selected_rows = set(index.row() for index in selected_indices)
+    
+    key_data = []
+
+    for row in selected_rows:
+        for col in range(table.columnCount()):
+            item = table.item(row, col)
+            if col == (table.columnCount() - 1) and (table.columnCount() - 1) == 5:
+                key_data.append(int(item.text()))
+            elif col == (table.columnCount() - 1):
+                key_data.append(item.text())
+        
+    status = Name_Rule_SQL_handler.delete_by_keys(table_name= table_list_name, key_column=key, key_values=key_data)
+
+    if status != True:
+        show_alert(f"刪除欄位失敗: {status}")
+        return
+    
+    show_input(col_name, table, _hide_widget, Item, Category, Type)
+ 
+def save_to_excel(data):
+    options = QFileDialog.Options()
+    options |= QFileDialog.DontUseNativeDialog
+    file_path, _ = QFileDialog.getSaveFileName(None, "Save File", "output.xlsx", "Excel Files (*.xlsx);", options=options)
+    if file_path:
+        if not file_path.endswith('.xlsx'):
+            file_path += '.xlsx'
+        status = execl_handle.export_data_to_excel(data, file_path)
+
+        if status != True:
+            show_alert(f"儲存至{file_path}時發生錯誤")
+        else:
+            show_alert(f"儲存{file_path}成功!!", "通知")
+
+def show_input(col_name, table, _hide_widget, Item = "", Category = "", Type = ""):
+    table.clear()
+    _hide_widget['combo_NUM3'][-1].clear()
+    _hide_widget['combo_NUM4'][-1].clear()
+    _hide_widget['combo_NUM5'][-1].clear()
+
+    filter = {}
+    if Item != "":
+        filter.update({"item_Name":Item})
+    if Category != "":
+        filter.update({"Category_Name":Category})
+    if Type != "":
+        filter.update({"Type_Name":Type})
+
+    table_list = Name_Rule_SQL_handler.fetch_data_from_table({"Col_Name": col_name},'correspond_table')
+    table_list_name = table_list[0][1]
+
+    columns = Name_Rule_SQL_handler.get_column_names(table_list_name)
+
+    target_table_data = Name_Rule_SQL_handler.get_table_data(table_list_name)
+    target_table_data_filter = Name_Rule_SQL_handler.get_table_data(table_list_name, options=filter)
+
+    if (target_table_data_filter == []):
+        show_alert("篩選條件有誤")
+        show_input(col_name, table, _hide_widget, Item)
+        return
+
+    col_len = len(target_table_data_filter[0])
+
+    table.setColumnCount(col_len)
+
+
+    # header = ["編碼", "名稱"]
+    table.setHorizontalHeaderLabels(columns)
+    table.setRowCount(len(target_table_data_filter))
+
+    for idx, data in enumerate(target_table_data_filter):
+        for num, val in enumerate(data):
+            item = QTableWidgetItem(str(val))
+            if(num == 5 or (col_len == 2 and num == 1)):
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            table.setItem(idx, num, item)
+            
+    table.resizeColumnsToContents()
+
+    if col_len == 6:
+        item_data = set(item[1] for item in target_table_data)
+        item_data_list = list(item_data)
+
+        category_data = set(item[2] for item in target_table_data)
+        category_data_list = list(category_data)
+
+        type_data = set(item[3] for item in target_table_data)
+        type_data_list = list(type_data)
+
+        _hide_widget['combo_NUM3'][-1].addItems([""]+item_data_list)
+        _hide_widget['combo_NUM4'][-1].addItems([""]+category_data_list)
+        _hide_widget['combo_NUM5'][-1].addItems([""]+type_data_list)
+
+        _hide_widget["combo_NUM3"][-1].view().setMinimumWidth(280)
+        _hide_widget["combo_NUM4"][-1].view().setMinimumWidth(280)
+        _hide_widget["combo_NUM5"][-1].view().setMinimumWidth(280)
+
+        _hide_widget['combo_NUM3'][-1].setCurrentText(Item)
+        _hide_widget['combo_NUM4'][-1].setCurrentText(Category)
+        _hide_widget['combo_NUM5'][-1].setCurrentText(Type)
+
+def renew_table(table):
+    table.clear()
+
+    columns = Name_Rule_SQL_handler.get_column_names('col_module')
+
+    table.setHorizontalHeaderLabels(columns)
+    table.setColumnCount(len(columns))
+    
+    col_module_table = Name_Rule_SQL_handler.get_table_data('col_module')
+    if isinstance(col_module_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {col_module_table}')
+        return
+
+    table.setRowCount(len(col_module_table))
+
+    for idx, data in enumerate(col_module_table):
+        for num, val in enumerate(data):
+            item = QTableWidgetItem(str(val))
+            table.setItem(idx, num, item)
+            
+    table.resizeColumnsToContents()
+
+    # print(col_module_table)
+
+def add_module(table,_widget, _hide_widget):
+    if _widget['combo_item'][-1].currentText() == '':
+        show_alert("請選擇項目")
+        return
+    if _widget['combo_category'][-1].currentText() == '':
+        show_alert("請選擇種類1")
+        return
+
+    # print(_widget['combo_item'][-1].currentText())
+    # print(_widget['combo_category'][-1].currentText())
+    # print(_widget['combo_type'][-1].currentText())
+    # print(_hide_widget['combo_NUM3'][-1].currentText())
+
+    NUM1 = _widget['combo_item'][-1].currentText()
+    NUM2 = _widget['combo_category'][-1].currentText() if _widget['combo_type'][-1].currentText() == "" else f"{_widget['combo_category'][-1].currentText()}_{_widget['combo_type'][-1].currentText()}"
+    NUM3 = "種類" if _widget['combo_type'][-1].currentText() != "" else _hide_widget['combo_NUM3'][-1].currentText()
+    if NUM3 == "":
+        NUM3 = None
+    NUM4 = _hide_widget['combo_NUM4'][-1].currentText() if _hide_widget['combo_NUM4'][-1].currentText() != "" else None
+    NUM5 = _hide_widget['combo_NUM5'][-1].currentText() if _hide_widget['combo_NUM5'][-1].currentText() != "" else None
+    NUM6 = _hide_widget['combo_NUM6'][-1].currentText() if _hide_widget['combo_NUM6'][-1].currentText() != "" else None
+    NUM7 = _hide_widget['combo_NUM7'][-1].currentText() if _hide_widget['combo_NUM7'][-1].currentText() != "" else None
+    NUM8 = _hide_widget['combo_NUM8'][-1].currentText() if _hide_widget['combo_NUM8'][-1].currentText() != "" else None
+    NUM9 = _hide_widget['combo_NUM9'][-1].currentText() if _hide_widget['combo_NUM9'][-1].currentText() != "" else None
+    NUM10 = _hide_widget['combo_NUM10'][-1].currentText() if _hide_widget['combo_NUM10'][-1].currentText() != "" else None
+    NUM11 = _hide_widget['combo_NUM11'][-1].currentText() if _hide_widget['combo_NUM11'][-1].currentText() != "" else None
+
+    data = [NUM1, NUM2, NUM3, NUM4, NUM5, NUM6, NUM7, NUM8, NUM9, NUM10, NUM11, None]
+
+    status = Name_Rule_SQL_handler.add_data_to_col_module_table(data)
+
+    if status != True:
+        show_alert(f"新增模組時發生錯誤: {status}")
+
+    renew_table(table)
+
+def show_material():
+    dialog = QDialog()
+    dialog.setWindowTitle("顯示結果")
+    dialog.resize(1050,550)
+
+    layout = QVBoxLayout()
+
+    datatable = create_table()
+
+    header = ["ERP Code", "ECount", "品項名稱", "項目","總類", "尺寸/種類", "%數","容值/阻值/名稱", "電壓", "製造商", "供應商", "生成時間", "PartNumber"]
+
+    datatable.setColumnCount(len(header))
+    datatable.setHorizontalHeaderLabels(header)
+
+    SQL_Material = Name_Rule_SQL_handler.get_table_data(table_name='material',order_by='CreatedAt', order= 'DESC' , database_name= 'pcbmanagement')
+    # print(SQL_Material)
+    datatable.setRowCount(len(SQL_Material))
+
+    for idx, data in enumerate(SQL_Material):
+        datatable.setItem(idx, 0, QTableWidgetItem(SQL_Material[idx][0]))
+        datatable.setItem(idx, 1, QTableWidgetItem(SQL_Material[idx][1]))
+        datatable.setItem(idx, 2, QTableWidgetItem(SQL_Material[idx][2]))
+        datatable.setItem(idx, 3, QTableWidgetItem(SQL_Material[idx][3]))
+        datatable.setItem(idx, 4, QTableWidgetItem(SQL_Material[idx][4]))
+        datatable.setItem(idx, 5, QTableWidgetItem(SQL_Material[idx][5]))
+        datatable.setItem(idx, 6, QTableWidgetItem(SQL_Material[idx][6]))
+        datatable.setItem(idx, 7, QTableWidgetItem(SQL_Material[idx][7]))
+        datatable.setItem(idx, 8, QTableWidgetItem(SQL_Material[idx][8]))
+        datatable.setItem(idx, 9, QTableWidgetItem(SQL_Material[idx][9]))
+        datatable.setItem(idx, 10, QTableWidgetItem(SQL_Material[idx][10]))
+        time_str = SQL_Material[idx][11].strftime("%Y-%m-%d %H:%M:%S")
+        datatable.setItem(idx, 11, QTableWidgetItem(time_str))
+        datatable.setItem(idx, 12, QTableWidgetItem(SQL_Material[idx][12]))
+
+    datatable.resizeColumnsToContents()
+
+    layout.addWidget(datatable)
+
+    button = create_button("下載資料","#DDDDDD",0,0, width=150)
+
+    button.clicked.connect(lambda: save_to_excel(SQL_Material))
+
+    layout.addWidget(button, alignment= Qt.AlignRight)
+
+    dialog.setLayout(layout)
+        
+    dialog.exec_()
+
+def part_code_generator_page():
     clear_widgets(widgets)
+    clear_widgets(hide_widgets)
     clear_widgets(main_page_widgets)
 
-    clear_parameters(parameters)
+    item_list_table = Name_Rule_SQL_handler.get_table_data('item_list')
+    if isinstance(item_list_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {item_list_table}')
+        item_list= []
+    else: 
+        item_list = [item[1] for item in item_list_table]
 
-    #import combo box data
-    data = execl_handle.excel_list_read(df)
-    parameters["part_object"].append([list(d.keys())[0] for d in data])
+    # category_list_table = Name_Rule_SQL_handler.get_table_data('category_list')
+    # if isinstance(category_list_table, str):
+    #     show_alert(f'讀取命名規則時發生錯誤: {category_list_table}')
+    #     category_list= [item[1] for item in category_list_table]
+    # else: 
+    #     category_list = [item[1] for item in category_list_table]
+
 
     #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
+    button_back = create_button("←", "#DDDDDD", 0, 0, 20, 60)
     #button callback
     widgets["button_back"].append(button_back)
 
-    #place global widgets on the grid
     grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
     button_back.clicked.connect(back_to_main_page)
 
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
+    button1 = create_button("新增編碼頁", "#DEF100", 0, 0)
+    widgets["button1"].append(button1)
 
-    #LineEdit widget
-    lineEdit = create_lineedit(0,0)
+    #place global widgets on the grid
+    grid.addWidget(widgets["button1"][-1], 1, 1, 1, 1)
+
+    button2 = create_button("新增模組頁", "#DDDDDD", 0, 0)
+    widgets["button2"].append(button2)
+
+    #place global widgets on the grid
+    grid.addWidget(widgets["button2"][-1], 1, 2, 1, 1)
+
+    button3 = create_button("更新欄位頁", "#DDDDDD", 0, 0)
+    widgets["button3"].append(button3)
+
+    grid.addWidget(widgets["button3"][-1], 1, 3, 1, 1)
+
+    button1.clicked.connect(button1_click) # 20240724 OK
+    button2.clicked.connect(button2_click) # 20240724 OK
+    button3.clicked.connect(button3_click) # 20240724 OK
+
+    label_item = create_label("項目", 0, 0, align="left")
+    widgets["label_item"].append(label_item)
+    grid.addWidget(widgets["label_item"][-1], 2, 1, 1, 1, alignment=Qt.AlignLeft)
+
+    combo_item = create_combobox(item_list,0,0)
+    widgets["combo_item"].append(combo_item)
+    grid.addWidget(widgets["combo_item"][-1], 2, 1, 1, 2, alignment=Qt.AlignHCenter)
+    combo_item.view().setMinimumWidth(combo_item.minimumSizeHint().width()+20)
+    # widgets["combo_item"][-1].setCurrentIndex(part_choose)
     
-    widgets["line_bar1"].append(lineEdit)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
+    label_category = create_label("種類1", 0, 0, align="left")
+    widgets["label_category"].append(label_category)
+    grid.addWidget(widgets["label_category"][-1], 3, 1, 1, 1, alignment=Qt.AlignLeft)
 
-    # widgets["logo"].append(logo)
+    combo_category = create_combobox([],0,0)
+    widgets["combo_category"].append(combo_category)
+    grid.addWidget(widgets["combo_category"][-1], 3, 1, 1, 2, alignment=Qt.AlignHCenter)
+    combo_category.setDisabled(True)
+    combo_category.setEditable(True)
 
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
+    label_type = create_label("種類2", 0, 0, align="left")
+    widgets["label_type"].append(label_type)
+    grid.addWidget(widgets["label_type"][-1], 4, 1, 1, 1, alignment=Qt.AlignLeft)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
+    combo_type = create_combobox([],0,0)
+    widgets["combo_type"].append(combo_type)
+    grid.addWidget(widgets["combo_type"][-1], 4, 1, 1, 2, alignment=Qt.AlignHCenter)
+    combo_type.setDisabled(True)
 
-    #info widget
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
+    label_NUM3 = create_label("", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM3"].append(label_NUM3)
+    grid.addWidget(hide_widgets["label_NUM3"][-1], 2, 2, 1, 1, alignment=Qt.AlignRight)
+    label_NUM3.setVisible(False)
 
-    #button widget
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
+    combo_NUM3 = create_combobox([],0,0)
+    hide_widgets["combo_NUM3"].append(combo_NUM3)
+    grid.addWidget(hide_widgets["combo_NUM3"][-1], 2, 3, 1, 1, alignment=Qt.AlignLeft)
+    combo_NUM3.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
+    label_NUM4 = create_label("", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM4"].append(label_NUM4)
+    grid.addWidget(hide_widgets["label_NUM4"][-1], 3, 2, 1, 1, alignment=Qt.AlignRight)
+    label_NUM4.setVisible(False)
 
-    label11 = create_label("已產生編號", 0, 0)
-    widgets["label11"].append(label11)
-    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
+    combo_NUM4 = create_combobox([],0,0)
+    hide_widgets["combo_NUM4"].append(combo_NUM4)
+    grid.addWidget(hide_widgets["combo_NUM4"][-1], 3, 3, 1, 1, alignment=Qt.AlignLeft)
+    combo_NUM4.setVisible(False)
 
-    #QBoxLayout for produced part
-    # label12 = create_label("", 0, 0)
-    # label12.setStyleSheet("background: #DFDFDF")
-    # widgets["label12"].append(label12)
-    # grid.addWidget(widgets["label12"][-1], 3, 6, 4, 1)
-    global Pannel
-    Pannel = QTextEdit()
-    Pannel.setReadOnly(True)
-    Pannel.setStyleSheet("font-size:20px; font-family: Microsoft JhengHei;font-weight: bold;")
-    Pannel.setFixedWidth(180)
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-    # grid.addLayout(vbox_trash_layout, 3, 7, 4, 1)
+    label_NUM5 = create_label("", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM5"].append(label_NUM5)
+    grid.addWidget(hide_widgets["label_NUM5"][-1], 4, 2, 1, 1, alignment=Qt.AlignRight)
+    label_NUM5.setVisible(False)
 
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
-    widgets["button_export"].append(button3)
+    combo_NUM5 = create_combobox([],0,0)
+    hide_widgets["combo_NUM5"].append(combo_NUM5)
+    grid.addWidget(hide_widgets["combo_NUM5"][-1], 4, 3, 1, 1, alignment=Qt.AlignLeft)
+    combo_NUM5.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
+    label_NUM6 = create_label("", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM6"].append(label_NUM6)
+    grid.addWidget(hide_widgets["label_NUM6"][-1], 5, 2, 1, 1, alignment=Qt.AlignRight)
+    label_NUM6.setVisible(False)
 
-    button1.clicked.connect(lambda: sequence_input(lineEdit.text()))
+    combo_NUM6 = create_combobox([],0,0)
+    hide_widgets["combo_NUM6"].append(combo_NUM6)
+    grid.addWidget(hide_widgets["combo_NUM6"][-1], 5, 3, 1, 1, alignment=Qt.AlignLeft)
+    combo_NUM6.setVisible(False)
 
+    label_NUM7 = create_label("", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM7"].append(label_NUM7)
+    grid.addWidget(hide_widgets["label_NUM7"][-1], 6, 2, 1, 1, alignment=Qt.AlignRight)
+    label_NUM7.setVisible(False)
 
-#*********************************************
-#                  FRAME 2
-#*********************************************
+    combo_NUM7 = create_combobox([],0,0)
+    hide_widgets["combo_NUM7"].append(combo_NUM7)
+    grid.addWidget(hide_widgets["combo_NUM7"][-1], 6, 3, 1, 1, alignment=Qt.AlignLeft)
+    combo_NUM7.setVisible(False)
 
-def frame2(part_choose):
-    global parameters
+    label_NUM8 = create_label("", 0, 0, align="left", width= 85)
+    hide_widgets["label_NUM8"].append(label_NUM8)
+    grid.addWidget(hide_widgets["label_NUM8"][-1], 2, 4, 1, 1, alignment=Qt.AlignLeft)
+    label_NUM8.setVisible(False)
 
-    clear_widgets(widgets)
+    combo_NUM8 = create_combobox([],0,0)
+    hide_widgets["combo_NUM8"].append(combo_NUM8)
+    grid.addWidget(hide_widgets["combo_NUM8"][-1], 2, 4, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM8.setVisible(False)
 
-    clear_parameters(parameters)
+    label_NUM9 = create_label("", 0, 0, align="left", width= 85)
+    hide_widgets["label_NUM9"].append(label_NUM9)
+    grid.addWidget(hide_widgets["label_NUM9"][-1], 3, 4, 1, 1, alignment=Qt.AlignLeft)
+    label_NUM9.setVisible(False)
 
-    #import combo box data
-    parameters["part_object"].append(object_selected)
+    combo_NUM9 = create_combobox([],0,0)
+    hide_widgets["combo_NUM9"].append(combo_NUM9)
+    grid.addWidget(hide_widgets["combo_NUM9"][-1], 3, 4, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM9.setVisible(False)
 
-    parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[part_choose]]])
+    label_NUM10 = create_label("", 0, 0, align="left", width= 85)
+    hide_widgets["label_NUM10"].append(label_NUM10)
+    grid.addWidget(hide_widgets["label_NUM10"][-1], 4, 4, 1, 1, alignment=Qt.AlignLeft)
+    label_NUM10.setVisible(False)
 
-    #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
-    #button callback
-    widgets["button_back"].append(button_back)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
-    button_back.clicked.connect(back_to_main_page)
-
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
-
-    #LineEdit widget
-    lineEdit = create_lineedit(0,0)
-    widgets["line_bar1"].append(lineEdit)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
-
-    # widgets["logo"].append(logo)
-
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
-
-    #info widget
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
-
-    #button widget
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
-
-    #info widget
-    label3 = create_label("種類", 0, 0)
-    widgets["label3"].append(label3)
-    grid.addWidget(widgets["label3"][-1], 3, 1, 1, 1)
-
-    #button widget
-    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
-    widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 1)
-
-    label11 = create_label("已產生編號", 0, 0)
-    widgets["label11"].append(label11)
-    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
-
-    #QBoxLayout for produced part
-    # label12 = create_label("", 0, 0)
-    # label12.setStyleSheet("background: #DFDFDF")
-    # widgets["label12"].append(label12)
-    # grid.addWidget(widgets["label12"][-1], 3, 6, 4, 1)
-
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
-
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
-    widgets["button_export"].append(button3)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
-
-    button1.clicked.connect(lambda: sequence_input(lineEdit.text()))
-    button3.clicked.connect(export_data_to_excel)
-
-#*********************************************
-#                  FRAME 3
-#*********************************************
-
-def frame3(part_choose, type_choose, box3_val=None, box4_val=None, box5_val=None, box6_val=None, box7_val=None, box8_val=None, box9_val=None):
-    global parameters
-
-    clear_widgets(widgets)
-
-    clear_parameters(parameters)
-
+    combo_NUM10 = create_combobox([],0,0)
+    hide_widgets["combo_NUM10"].append(combo_NUM10)
+    grid.addWidget(hide_widgets["combo_NUM10"][-1], 4, 4, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM10.setVisible(False)
     
-    parameters["part_object"].append(object_selected)
+    label_NUM11 = create_label("", 0, 0, align="left", width= 85)
+    hide_widgets["label_NUM11"].append(label_NUM11)
+    grid.addWidget(hide_widgets["label_NUM11"][-1], 5, 4, 1, 1, alignment=Qt.AlignLeft)
+    label_NUM11.setVisible(False)
 
-    parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[part_choose]]])
+    combo_NUM11 = create_combobox([],0,0)
+    hide_widgets["combo_NUM11"].append(combo_NUM11)
+    grid.addWidget(hide_widgets["combo_NUM11"][-1], 5, 4, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM11.setVisible(False)
 
-    #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
-    #button callback
-    widgets["button_back"].append(button_back)
+    label_NUM12 = create_label("", 0, 0, align="left", width= 85)
+    hide_widgets["label_NUM12"].append(label_NUM12)
+    grid.addWidget(hide_widgets["label_NUM12"][-1], 6, 4, 1, 1, alignment=Qt.AlignLeft)
+    label_NUM12.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
-    button_back.clicked.connect(back_to_main_page)
-    
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
+    combo_NUM12 = create_combobox([],0,0)
+    hide_widgets["combo_NUM12"].append(combo_NUM12)
+    grid.addWidget(hide_widgets["combo_NUM12"][-1], 6, 4, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM12.setVisible(False)
 
-    #LineEdit widget
-    lineEdit1 = create_lineedit(0,0)
-    widgets["line_bar1"].append(lineEdit1)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
+    label_pn = create_label("PN", 0, 0, align="left")
+    widgets["label_pn"].append(label_pn)
+    grid.addWidget(widgets["label_pn"][-1], 6, 1, 1, 1)
 
-    # widgets["logo"].append(logo)
+    line_bar_pn = create_lineedit( 0, 0, width=150)
+    widgets["line_bar_pn"].append(line_bar_pn)
+    grid.addWidget(widgets["line_bar_pn"][-1], 6, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
-
-    #1st
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
-
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
-
-    #2nd
-    label3 = create_label("種類", 0, 0)
-    widgets["label3"].append(label3)
-    grid.addWidget(widgets["label3"][-1], 3, 1, 1, 1)
-
-    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
-    widgets["selected_box2"].append(Combox2)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 1)
-    widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
-
-    try:
-        parameters["part_size"].append([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_size"].append(["0201","0402"])
-
-    parameters["part_coefficient"].append(["X7R","X5R", "NPO"])
-
-    try:
-        parameters["part_percentage"].append([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_percentage"].append(["B ± 0.10pF", "C ± 0.25pF"])
-
-    try:
-        parameters["part_capacity"].append([list(d.keys())[0] for d in capacity_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_capacity"].append(["102 1000p", "200 20p"])
-
-    try:
-        parameters["part_voltage"].append([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_voltage"].append(["16V", "25V"])
-
-    try:
-        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_manufacturer"].append(["國巨", "華新科"])
-
-    parameters["part_supplier"].append(supplier_data)
-
-    #3rd
-    label4 = create_label("零件尺寸", 0, 0)
-    widgets["label4"].append(label4)
-    grid.addWidget(widgets["label4"][-1], 4, 1, 1, 1)
-
-    Combox3 = create_combobox(parameters["part_size"][-1], 0, 0)
-    widgets["selected_box3"].append(Combox3)
-    if(box3_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]]), box3_val.casefold()) != None):
-                widgets["selected_box3"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]]), box3_val.casefold()))
-        except:
-            pass
-
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box3"][-1], 4, 2, 1, 1)
-
-    #4th
-    label5 = create_label("類型", 0, 0)
-    widgets["label5"].append(label5)
-    grid.addWidget(widgets["label5"][-1], 5, 1, 1, 1)
-
-    Combox4 = create_combobox(parameters["part_coefficient"][-1], 0, 0)
-    widgets["selected_box4"].append(Combox4)
-    if(box4_val != None):
-        if(box4_val in "X7R".casefold()):
-            widgets["selected_box4"][-1].setCurrentIndex(0)
-        elif(box4_val in "X5R".casefold()):
-            widgets["selected_box4"][-1].setCurrentIndex(1)
-        elif(box4_val in "X5R".casefold()):
-            widgets["selected_box4"][-1].setCurrentIndex(2)
-        else:
-            widgets["selected_box4"][-1].setCurrentIndex(0)
-           
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box4"][-1], 5, 2, 1, 1)
-
-    #4th
-    label6 = create_label("%數", 0, 0)
-    widgets["label6"].append(label6)
-    grid.addWidget(widgets["label6"][-1], 6, 1, 1, 1)
-
-    Combox5 = create_combobox(parameters["part_percentage"][-1], 0, 0)
-    widgets["selected_box5"].append(Combox5)
-    if(box5_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()) != None):
-                widgets["selected_box5"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box5"][-1], 6, 2, 1, 1)
-
-    #5th 6th 7th
-    label7 = create_label("電容值", 0, 0)
-    widgets["label7"].append(label7)
-    grid.addWidget(widgets["label7"][-1], 2, 3, 1, 1)
-
-    Combox6 = create_combobox(parameters["part_capacity"][-1], 0, 0)
-    widgets["selected_box6"].append(Combox6)
-    if(box6_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in capacity_data[widgets["selected_box2"][-1].currentText()]]), box6_val.casefold()) != None):
-                widgets["selected_box6"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in capacity_data[widgets["selected_box2"][-1].currentText()]]), box6_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box6"][-1], 2, 4, 1, 1)
-
-    #8th
-    label8 = create_label("電壓值", 0, 0)
-    widgets["label8"].append(label8)
-    grid.addWidget(widgets["label8"][-1], 3, 3, 1, 1)
-
-    Combox7 = create_combobox(parameters["part_voltage"][-1], 0, 0)
-    widgets["selected_box7"].append(Combox7)
-    if(box7_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]]), box7_val.casefold()) != None):
-                widgets["selected_box7"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]]), box7_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box7"][-1], 3, 4, 1, 1)
-
-    #9th
-    label9 = create_label("廠商", 0, 0)
-    widgets["label9"].append(label9)
-    grid.addWidget(widgets["label9"][-1], 4, 3, 1, 1)
-
-    Combox8 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
-    widgets["selected_box8"].append(Combox8)
-    if(box8_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box8_val.casefold()) != None):
-                widgets["selected_box8"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box8_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box8"][-1], 4, 4, 1, 1)
-
-    #10th 11th
-    label10 = create_label("供應商", 0, 0)
-    widgets["label10"].append(label10)
-    grid.addWidget(widgets["label10"][-1], 5, 3, 1, 1)
-
-    Combox9 = create_combobox(parameters["part_supplier"][-1], 0, 0)
-    widgets["selected_box9"].append(Combox9)
-    if(box9_val != None):
-        index = next((i for i, company in enumerate(supplier_data) if box9_val in company), None)
-        if index is not None:
-            widgets["selected_box9"][-1].setCurrentIndex(index)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box9"][-1], 5, 4, 1, 1)
+    combo_type.currentIndexChanged.connect(lambda: combo_part_type_change(combo_item.currentText(), combo_category.currentText(), combo_type.currentText(), combo_type, combo_category, combo_type, hide_widgets))
+    combo_category.currentIndexChanged.connect(lambda: combo_part_category_change(combo_item.currentText(), combo_category.currentText(), combo_type.currentText(), combo_type, combo_category, combo_type, hide_widgets))
+    combo_item.currentIndexChanged.connect(lambda: combo_part_item_change(combo_item.currentText(), combo_category.currentText(), combo_type.currentText(), combo_type, combo_category, combo_type, hide_widgets))
 
     #button widget
     button2 = create_button("生成料號", "#FFFDD4", 0, 0)
@@ -851,809 +880,314 @@ def frame3(part_choose, type_choose, box3_val=None, box4_val=None, box5_val=None
     widgets["line_bar3"].append(lineEdit3)
     grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
 
-    label12 = create_label("已產生編號", 0, 0)
+    global Pannel
+    Pannel = QTextEdit()
+    Pannel.setReadOnly(True)
+    Pannel.setStyleSheet("font-size:20px; font-family: Microsoft JhengHei;font-weight: bold;")
+    Pannel.setFixedWidth(200)
+    grid.addWidget(Pannel, 3, 6, 4, 2, alignment=Qt.AlignHCenter)
+
+    button2.clicked.connect(lambda: create_erp_code(combo_item.currentText(), combo_category.currentText(), combo_type.currentText(), line_bar_pn, lineEdit3, widgets, hide_widgets))
+
+    label12 = create_label("已產生編號:", 0, 0)
     widgets["label12"].append(label12)
-    grid.addWidget(widgets["label12"][-1], 2, 6, 1, 1)
+    grid.addWidget(widgets["label12"][-1], 2, 6, 1, 2, alignment=Qt.AlignHCenter|Qt.AlignBottom)
 
-    #QBoxLayout for produced part
-    # label13 = create_label("", 0, 0)
-    # label13.setStyleSheet("background: #DFDFDF")
-    # widgets["label13"].append(label13)
-    # grid.addWidget(widgets["label13"][-1], 3, 6, 4, 1)
-
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
-
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
+    button3 = create_button("匯出至資料庫", "#1F7145", 0, 0, width=200)
     widgets["button_export"].append(button3)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
+    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 2, alignment=Qt.AlignHCenter)
 
-    button1.clicked.connect(lambda: sequence_input(lineEdit1.currentText()))
-    button2.clicked.connect(lambda: part_number_generate_for_frame3(lineEdit2, lineEdit3, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText(), widgets["selected_box7"][-1].currentText(), widgets["selected_box8"][-1].currentText(), widgets["selected_box9"][-1].currentText()))
-    button3.clicked.connect(export_data_to_excel)
-    
-#*********************************************
-#                  FRAME 4
-#*********************************************
+    button_show = create_button("顯示編碼列表",'#262335', 0, 0, width=200, qcolor=[83,75,76,180], font= 15, font_color='white')
+    widgets["button_show"].append(button_show)
 
-def frame4(part_choose, type_choose, box3_val=None, box4_val=None, box5_val=None, box6_val=None, box7_val=None):
-    global parameters
+    #place global widgets on the grid
+    grid.addWidget(widgets["button_show"][-1], 8, 6, 1, 2, alignment=Qt.AlignHCenter)
 
+    button3.clicked.connect(export_data_to_SQL)
+    button_show.clicked.connect(show_material)
+
+def create_module_page():
+    # for new module create, user have to insert NUM1 ~ NUM11 Data
     clear_widgets(widgets)
+    clear_widgets(hide_widgets)
+    clear_widgets(main_page_widgets)
 
-    clear_parameters(parameters)
+    item_list_table = Name_Rule_SQL_handler.get_table_data('item_list')
+    if isinstance(item_list_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {item_list_table}')
+        item_list= []
+    else: 
+        item_list = [item[1] for item in item_list_table]
 
+    col_list_table = Name_Rule_SQL_handler.get_table_data('correspond_table')
+    if isinstance(item_list_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {col_list_table}')
+        col_list= []
+    else: 
+        col_list = [""]+[item[0] for item in col_list_table]
 
-    #import combo box data
-    parameters["part_object"].append(object_selected)
-
-    parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[part_choose]]])
-
-    #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
+    button_back = create_button("←", "#DDDDDD", 0, 0, 20, 60)
     #button callback
     widgets["button_back"].append(button_back)
 
-    #place global widgets on the grid
     grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
     button_back.clicked.connect(back_to_main_page)
 
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
-
-    #LineEdit widget
-    lineEdit = create_lineedit(0,0)
-    widgets["line_bar1"].append(lineEdit)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
-
-    # widgets["logo"].append(logo)
-
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
+    button1 = create_button("新增編碼頁", "#DDDDDD", 0, 0)
+    widgets["button1"].append(button1)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
+    grid.addWidget(widgets["button1"][-1], 1, 1, 1, 1)
 
-    #info widget
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
-
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
+    button2 = create_button("新增模組頁", "#DEF100", 0, 0)
+    widgets["button2"].append(button2)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
+    grid.addWidget(widgets["button2"][-1], 1, 2, 1, 1)
 
-    #2nd
-    label3 = create_label("種類", 0, 0)
-    widgets["label3"].append(label3)
-    grid.addWidget(widgets["label3"][-1], 3, 1, 1, 1)
+    button3 = create_button("更新欄位頁", "#DDDDDD", 0, 0)
+    widgets["button3"].append(button3)
 
-    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
-    widgets["selected_box2"].append(Combox2)
+    grid.addWidget(widgets["button3"][-1], 1, 3, 1, 1)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 1)
-    widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
+    button1.clicked.connect(button1_click) # 20240724 OK
+    button2.clicked.connect(button2_click) # 20240724 OK
+    button3.clicked.connect(button3_click) # 20240724 OK
 
-    
-    try:
-        parameters["part_size"].append([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_size"].append(["0201","0402"])
+    table = create_table()
+    widgets['table'].append(table)
+    grid.addWidget(widgets['table'][-1], 2, 4,6,4)
 
-    try:
-        parameters["part_percentage"].append([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_percentage"].append(["0.50%", "F±1%"])
+    renew_table(table)
 
-    try:
-        parameters["part_resistance"].append([list(d.keys())[0] for d in resistance_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_resistance"].append(["1KΩ", "560Ω"])
+    label_item = create_label("項目", 0, 0, align="left", width= 60)
+    widgets["label_item"].append(label_item)
+    grid.addWidget(widgets["label_item"][-1], 2, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    try:
-        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_manufacturer"].append(["國巨", "華新科"])
+    combo_item = create_combobox(item_list,0,0)
+    widgets["combo_item"].append(combo_item)
+    grid.addWidget(widgets["combo_item"][-1], 2, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    parameters["part_supplier"].append(supplier_data)
+    label_category = create_label("種類1", 0, 0, align="left", width= 60)
+    widgets["label_category"].append(label_category)
+    grid.addWidget(widgets["label_category"][-1], 3, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    #3rd
-    label4 = create_label("零件尺寸", 0, 0)
-    widgets["label4"].append(label4)
-    grid.addWidget(widgets["label4"][-1], 4, 1, 1, 1)
+    combo_category = create_combobox([],0,0)
+    widgets["combo_category"].append(combo_category)
+    grid.addWidget(widgets["combo_category"][-1], 3, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    Combox3 = create_combobox(parameters["part_size"][-1], 0, 0)
-    widgets["selected_box3"].append(Combox3)
-    if(box3_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]]), box3_val.casefold()) != None):
-                widgets["selected_box3"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in size_data[widgets["selected_box2"][-1].currentText()]]), box3_val.casefold()))
-        except:
-            pass
+    label_type = create_label("種類2", 0, 0, align="left", width= 60)
+    widgets["label_type"].append(label_type)
+    grid.addWidget(widgets["label_type"][-1], 4, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box3"][-1], 4, 2, 1, 1)
+    combo_type = create_combobox([],0,0)
+    widgets["combo_type"].append(combo_type)
+    grid.addWidget(widgets["combo_type"][-1], 4, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    #4th
-    label5 = create_label("%數", 0, 0)
-    widgets["label5"].append(label5)
-    grid.addWidget(widgets["label5"][-1], 5, 1, 1, 1)
+    label_NUM3 = create_label("編碼3", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM3"].append(label_NUM3)
+    grid.addWidget(hide_widgets["label_NUM3"][-1], 5, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    Combox4 = create_combobox(parameters["part_percentage"][-1], 0, 0)
-    widgets["selected_box4"].append(Combox4)
-    if(box4_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]]), box4_val.casefold()) != None):
-                widgets["selected_box4"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]]), box4_val.casefold()))
-        except:
-            pass
+    combo_NUM3 = create_combobox(col_list,0,0)
+    hide_widgets["combo_NUM3"].append(combo_NUM3)
+    grid.addWidget(hide_widgets["combo_NUM3"][-1], 5, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box4"][-1], 5, 2, 1, 1)
+    label_NUM4 = create_label("編碼4", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM4"].append(label_NUM4)
+    grid.addWidget(hide_widgets["label_NUM4"][-1], 6, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    #5th 6th 7th 8th
-    label6 = create_label("電阻值", 0, 0)
-    widgets["label6"].append(label6)
-    grid.addWidget(widgets["label6"][-1], 2, 3, 1, 1)
+    combo_NUM4 = create_combobox(col_list,0,0)
+    hide_widgets["combo_NUM4"].append(combo_NUM4)
+    grid.addWidget(hide_widgets["combo_NUM4"][-1], 6, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    Combox5 = create_combobox(parameters["part_resistance"][-1], 0, 0)
-    widgets["selected_box5"].append(Combox5)
-    if(box5_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in resistance_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()) != None):
-                widgets["selected_box5"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in resistance_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()))
-        except:
-            pass
+    label_NUM5 = create_label("編碼5", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM5"].append(label_NUM5)
+    grid.addWidget(hide_widgets["label_NUM5"][-1], 7, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box5"][-1], 2, 4, 1, 1)
+    combo_NUM5 = create_combobox(col_list,0,0)
+    hide_widgets["combo_NUM5"].append(combo_NUM5)
+    grid.addWidget(hide_widgets["combo_NUM5"][-1], 7, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    #9th
-    label7 = create_label("廠商", 0, 0)
-    widgets["label7"].append(label7)
-    grid.addWidget(widgets["label7"][-1], 3, 3, 1, 1)
+    label_NUM6 = create_label("編碼6", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM6"].append(label_NUM6)
+    grid.addWidget(hide_widgets["label_NUM6"][-1], 8, 0, 1, 2, alignment=Qt.AlignCenter)
+    # label_NUM3.setVisible(False)
 
-    Combox6 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
-    widgets["selected_box6"].append(Combox6)
-    if(box6_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box6_val.casefold()) != None):
-                widgets["selected_box6"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box6_val.casefold()))
-        except:
-            pass
+    combo_NUM6 = create_combobox(col_list,0,0)
+    hide_widgets["combo_NUM6"].append(combo_NUM6)
+    grid.addWidget(hide_widgets["combo_NUM6"][-1], 8, 1, 1, 2, alignment=Qt.AlignCenter)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box6"][-1], 3, 4, 1, 1)
+    label_NUM7 = create_label("編碼7", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM7"].append(label_NUM7)
+    grid.addWidget(hide_widgets["label_NUM7"][-1], 2, 2, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
 
-    #10th 11th
-    label8 = create_label("供應商", 0, 0)
-    widgets["label8"].append(label8)
-    grid.addWidget(widgets["label8"][-1], 4, 3, 1, 1)
+    combo_NUM7 = create_combobox(col_list,0,0)
+    hide_widgets["combo_NUM7"].append(combo_NUM7)
+    grid.addWidget(hide_widgets["combo_NUM7"][-1], 2, 2, 1, 2, alignment=Qt.AlignRight)
 
-    Combox7 = create_combobox(parameters["part_supplier"][-1], 0, 0)
-    widgets["selected_box7"].append(Combox7)
-    if(box7_val != None):
-        index = next((i for i, company in enumerate(supplier_data) if box7_val in company), None)
-        if index is not None:
-            widgets["selected_box7"][-1].setCurrentIndex(index)
+    label_NUM8 = create_label("編碼8", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM8"].append(label_NUM8)
+    grid.addWidget(hide_widgets["label_NUM8"][-1], 3, 2, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box7"][-1], 4, 4, 1, 1)
+    combo_NUM8 = create_combobox(col_list,0,0)
+    hide_widgets["combo_NUM8"].append(combo_NUM8)
+    grid.addWidget(hide_widgets["combo_NUM8"][-1], 3, 2, 1, 2, alignment=Qt.AlignRight)
 
-    #button widget
-    button2 = create_button("生成料號", "#FFFDD4", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_output"].append(button2)
+    label_NUM9 = create_label("編碼9", 0, 0, align="left", width= 60)
+    hide_widgets["label_NUM9"].append(label_NUM9)
+    grid.addWidget(hide_widgets["label_NUM9"][-1], 4, 2, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_output"][-1], 7, 1, 1, 1)
+    combo_NUM9 = create_combobox(["廠商"],0,0)
+    hide_widgets["combo_NUM9"].append(combo_NUM9)
+    grid.addWidget(hide_widgets["combo_NUM9"][-1], 4, 2, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM9.setCurrentText("廠商")
 
-    #LineEdit widget
-    lineEdit2 = create_lineedit(0,0)
-    lineEdit2.setReadOnly(True)
-    widgets["line_bar2"].append(lineEdit2)
-    grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
-    
-    label9 = create_label("品項名稱", 0, 0)
-    widgets["label9"].append(label9)
-    grid.addWidget(widgets["label9"][-1], 8, 1, 1, 1)
+    label_NUM10 = create_label("編碼10", 0, 0, align="left", width= 70)
+    hide_widgets["label_NUM10"].append(label_NUM10)
+    grid.addWidget(hide_widgets["label_NUM10"][-1], 5, 2, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
 
-    #LineEdit widget
-    lineEdit3 = create_lineedit(0,0)
-    lineEdit3.setReadOnly(True)
-    widgets["line_bar3"].append(lineEdit3)
-    grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
-    
+    combo_NUM10 = create_combobox([],0,0)
+    hide_widgets["combo_NUM10"].append(combo_NUM10)
+    grid.addWidget(hide_widgets["combo_NUM10"][-1], 5, 2, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM10.setEnabled(False)
 
-    label10 = create_label("已產生編號", 0, 0)
-    widgets["label10"].append(label10)
-    grid.addWidget(widgets["label10"][-1], 2, 6, 1, 1)
+    label_NUM11 = create_label("編碼11", 0, 0, align="left", width= 70)
+    hide_widgets["label_NUM11"].append(label_NUM11)
+    grid.addWidget(hide_widgets["label_NUM11"][-1], 6, 2, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
 
-    #QBoxLayout for produced part
-    # label11 = create_label("", 0, 0)
-    # label11.setStyleSheet("background: #DFDFDF")
-    # widgets["label11"].append(label11)
-    # grid.addWidget(widgets["label11"][-1], 3, 6, 4, 1)
+    combo_NUM11 = create_combobox(["供應商"],0,0)
+    hide_widgets["combo_NUM11"].append(combo_NUM11)
+    grid.addWidget(hide_widgets["combo_NUM11"][-1], 6, 2, 1, 2, alignment=Qt.AlignRight)
+    combo_NUM11.setCurrentText("供應商")
 
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
 
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
-    widgets["button_export"].append(button3)
+    combo_category.currentIndexChanged.connect(lambda: combo_table_category_change(combo_item.currentText(), combo_category.currentText(), combo_type.currentText(), combo_type, combo_category, combo_type, hide_widgets))
+    combo_item.currentIndexChanged.connect(lambda: combo_table_item_change(combo_item.currentText(), combo_category.currentText(), combo_type.currentText(), combo_type, combo_category, combo_type, hide_widgets))
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
+    button_export = create_button("新增模組", "#DDDDDD", 0, 0)
+    widgets['button_export'].append(button_export)
+    grid.addWidget(widgets['button_export'][-1], 8, 2, 1, 2, alignment=Qt.AlignRight)
 
-    button1.clicked.connect(lambda: sequence_input(lineEdit.text()))
-    button2.clicked.connect(lambda: part_number_generate_for_frame4(lineEdit2, lineEdit3, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText(), widgets["selected_box7"][-1].currentText()))
-    button3.clicked.connect(export_data_to_excel)
+    button_export.clicked.connect(lambda: add_module(table, widgets, hide_widgets))
 
-#*********************************************
-#                  FRAME 5
-#*********************************************
-
-def frame5(part_choose, type_choose):
-    global parameters
-
+def add_selection_page():
+    # add selection
     clear_widgets(widgets)
+    clear_widgets(hide_widgets)
+    clear_widgets(main_page_widgets)
 
-    clear_parameters(parameters)
+    item_category_list_table = Name_Rule_SQL_handler.get_table_data('correspond_table')
+    if isinstance(item_category_list_table, str):
+        show_alert(f'讀取命名規則時發生錯誤: {item_category_list_table}')
+        item_list= []
+    else: 
+        item_list = [item[0] for item in item_category_list_table]
 
-    #import combo box data
-    parameters["part_object"].append(object_selected)
-
-    parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[part_choose]]])
-
-    #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
+    button_back = create_button("←", "#DDDDDD", 0, 0, 20, 60)
     #button callback
     widgets["button_back"].append(button_back)
 
-    #place global widgets on the grid
     grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
     button_back.clicked.connect(back_to_main_page)
 
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
-
-     #LineEdit widget
-    lineEdit = create_lineedit(0,0)
-    widgets["line_bar1"].append(lineEdit)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
-
-    # widgets["logo"].append(logo)
-
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
+    button1 = create_button("新增編碼頁", "#DDDDDD", 0, 0)
+    widgets["button1"].append(button1)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
+    grid.addWidget(widgets["button1"][-1], 1, 1, 1, 1)
 
-    #info widget
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
-
-    #button widget
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
+    button2 = create_button("新增模組頁", "#DDDDDD", 0, 0)
+    widgets["button2"].append(button2)
 
     #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
+    grid.addWidget(widgets["button2"][-1], 1, 2, 1, 1)
 
-    #info widget
-    label3 = create_label("種類", 0, 0)
-    widgets["label3"].append(label3)
-    grid.addWidget(widgets["label3"][-1], 3, 1, 1, 1)
+    button3 = create_button("更新欄位頁", "#DEF100", 0, 0)
+    widgets["button3"].append(button3)
 
-    #button widget
-    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
-    widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
+    grid.addWidget(widgets["button3"][-1], 1, 3, 1, 1)
 
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 1)
+    button1.clicked.connect(button1_click) # 20240724 OK
+    button2.clicked.connect(button2_click) # 20240724 OK
+    button3.clicked.connect(button3_click) # 20240724 OK
 
-    try:
-        parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_kind"].append(["貼片IC"])
+    label_choose = create_label("請選擇要更新的選項:",0,0,align="left",width=300)
+    widgets["label_choose"].append(label_choose)
+    grid.addWidget(widgets["label_choose"][-1], 2, 1, 1, 2, alignment=Qt.AlignRight)
 
-    #info widget
-    label4 = create_label("種類", 0, 0)
-    widgets["label4"].append(label4)
-    grid.addWidget(widgets["label4"][-1], 4, 1, 1, 1)
-    #button widget
-    Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
-    widgets["selected_box3"].append(Combox3)
-    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box3"][-1], 4, 2, 1, 1)
-
-    label11 = create_label("已產生編號", 0, 0)
-    widgets["label11"].append(label11)
-    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
-
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
-    widgets["button_export"].append(button3)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
-
-    button1.clicked.connect(lambda: sequence_input(lineEdit.text()))
-
-#*********************************************
-#                  FRAME 6
-#*********************************************
-
-def frame6(part_choose, type_choose, kind_choose, box4_val=None, box5_val=None, box6_val=None):
-    global parameters
-
-    clear_widgets(widgets)
-
-    clear_parameters(parameters)
-
-    #import combo box data
-    parameters["part_object"].append(object_selected)
-
-    parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[part_choose]]])
-
-    #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
-    #button callback
-    widgets["button_back"].append(button_back)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
-    button_back.clicked.connect(back_to_main_page)
-
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
-
-     #LineEdit widget
-    lineEdit = create_lineedit(0,0)
-    widgets["line_bar1"].append(lineEdit)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
-
-    # widgets["logo"].append(logo)
-
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
-
-    #info widget
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
-
-    #button widget
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 1)
-
-    #info widget
-    label3 = create_label("種類", 0, 0)
-    widgets["label3"].append(label3)
-    grid.addWidget(widgets["label3"][-1], 3, 1, 1, 1)
-
-    #button widget
-    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
-    widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 1)
-
-    try:
-        parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_kind"].append(["貼片IC"])
-
-    #info widget
-    label4 = create_label("種類", 0, 0)
-    widgets["label4"].append(label4)
-    grid.addWidget(widgets["label4"][-1], 4, 1, 1, 1)
-    #button widget
-    Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
-    widgets["selected_box3"].append(Combox3)
-    widgets["selected_box3"][-1].setCurrentIndex(kind_choose)
-    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box3"][-1], 4, 2, 1, 1)
-
-    try:
-        parameters["part_name"].append([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_name"].append(["RS621KXF", "LTL431ALT1G(乐山)", "ID5S609SEC-R1", "ULN2003G(UTC)"])
-    
-    try:
-        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_manufacturer"].append([])
-
-    parameters["part_supplier"].append(supplier_data)
-
-    #info widget
-    label5 = create_label("料件名稱", 0, 0)
-    widgets["label5"].append(label5)
-    grid.addWidget(widgets["label5"][-1], 5, 1, 1, 1)
-
-    Combox4 = create_combobox(parameters["part_name"][-1], 0, 0)
-    widgets["selected_box4"].append(Combox4)
-    if(box4_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]]), box4_val.casefold()) != None):
-                widgets["selected_box4"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]]), box4_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box4"][-1], 5, 2, 1, 1)
-
-    #9th
-    label6 = create_label("廠商", 0, 0)
-    widgets["label6"].append(label6)
-    grid.addWidget(widgets["label6"][-1], 4, 3, 1, 1)
-
-    Combox5 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
-    widgets["selected_box5"].append(Combox5)
-    if(box5_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()) != None):
-                widgets["selected_box5"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box5"][-1], 4, 4, 1, 1)
-
-    #10th 11th
-    label7 = create_label("供應商", 0, 0)
-    widgets["label7"].append(label7)
-    grid.addWidget(widgets["label7"][-1], 5, 3, 1, 1)
-
-    Combox6 = create_combobox(parameters["part_supplier"][-1], 0, 0)
-    widgets["selected_box6"].append(Combox6)
-    if(box6_val != None):
-        index = next((i for i, company in enumerate(supplier_data) if box6_val in company), None)
-        if index is not None:
-            widgets["selected_box7"][-1].setCurrentIndex(index)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box6"][-1], 5, 4, 1, 1)
-
-    #button widget
-    button2 = create_button("生成料號", "#FFFDD4", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_output"].append(button2)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_output"][-1], 7, 1, 1, 1)
-
-    #LineEdit widget
-    lineEdit2 = create_lineedit(0,0)
-    lineEdit2.setReadOnly(True)
-    widgets["line_bar2"].append(lineEdit2)
-    grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
-
-    label8 = create_label("品項名稱", 0, 0)
-    widgets["label8"].append(label8)
-    grid.addWidget(widgets["label8"][-1], 8, 1, 1, 1)
-
-    #LineEdit widget
-    lineEdit3 = create_lineedit(0,0)
-    widgets["line_bar3"].append(lineEdit3)
-    grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
-
-    label9 = create_label("已產生編號", 0, 0)
-    widgets["label9"].append(label9)
-    grid.addWidget(widgets["label9"][-1], 2, 6, 1, 1)
-
-    #QBoxLayout for produced part
-    # label10 = create_label("", 0, 0)
-    # label10.setStyleSheet("background: #DFDFDF")
-    # widgets["label10"].append(label10)
-    # grid.addWidget(widgets["label10"][-1], 3, 6, 4, 1)
-
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-    # grid.addLayout(vbox_trash_layout, 3, 7, 4, 1)
-
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
-    widgets["button_export"].append(button3)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
-
-    button1.clicked.connect(lambda: sequence_input(lineEdit.text()))
-    button2.clicked.connect(lambda: part_number_generate_for_frame6(lineEdit2, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText()))
-    button3.clicked.connect(export_data_to_excel)
-
-#*********************************************
-#                  FRAME 7
-#*********************************************
-
-def frame7(part_choose, type_choose, kind_choose, box4_val=None, box5_val=None, box6_val=None, box7_val=None, box8_val=None):
-    global parameters
-
-    clear_widgets(widgets)
-
-    clear_parameters(parameters)
-
-    #import combo box data
-    parameters["part_object"].append(object_selected)
-
-    parameters["part_type"].append([list(d.keys())[0] for d in type_data[object_selected[part_choose]]])
-
-    #button widget
-    button_back = create_button("-", "#545454", 0, 0, 20, 60)
-    #button callback
-    widgets["button_back"].append(button_back)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_back"][-1], 0, 0, 1, 1)
-    button_back.clicked.connect(back_to_main_page)
-
-    #info widget
-    label1 = create_label("料件資訊", 0, 0)
-    widgets["label1"].append(label1)
-    grid.addWidget(widgets["label1"][-1], 1, 1, 1, 1)
-
-     #LineEdit widget
-    lineEdit = create_lineedit(0,0)
-    widgets["line_bar1"].append(lineEdit)
-    grid.addWidget(widgets["line_bar1"][-1], 1, 2, 1, 2)
-
-    # widgets["logo"].append(logo)
-
-    #button widget
-    button1 = create_button("輸入", "#008E8E", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_input"].append(button1)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_input"][-1], 1, 4, 1, 1)
-
-    #info widget
-    label2 = create_label("項目", 0, 0)
-    widgets["label2"].append(label2)
-    grid.addWidget(widgets["label2"][-1], 2, 1, 1, 1)
-
-    #button widget
-    Combox1 = create_combobox(parameters["part_object"][-1], 0, 0)
-    widgets["selected_box1"].append(Combox1)
-    widgets["selected_box1"][-1].setCurrentIndex(part_choose)
-    widgets["selected_box1"][-1].currentIndexChanged.connect(lambda: combo_part_object_change(widgets["selected_box1"][-1].currentIndex()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box1"][-1], 2, 2, 1, 2)
-
-    #info widget
-    label3 = create_label("種類", 0, 0, align='center')
-    widgets["label3"].append(label3)
-    grid.addWidget(widgets["label3"][-1], 3, 1, 1, 1)
-
-    #button widget
-    Combox2 = create_combobox(parameters["part_type"][-1], 0, 0)
-    widgets["selected_box2"].append(Combox2)
-    widgets["selected_box2"][-1].setCurrentIndex(type_choose)
-    widgets["selected_box2"][-1].currentIndexChanged.connect(lambda: combo_part_type_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box2"][-1], 3, 2, 1, 2)
-
-    kind_data = execl_handle.execl_size_read(df, object_selection)
-    try:
-        parameters["part_kind"].append([list(d.keys())[0] for d in kind_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_kind"].append(["貼片IC"])
-
-    #info widget
-    label4 = create_label("種類", 0, 0, align='center')
-    widgets["label4"].append(label4)
-    grid.addWidget(widgets["label4"][-1], 4, 1, 1, 1)
-    #button widget
-    Combox3 = create_combobox(parameters["part_kind"][-1], 0, 0)
-    widgets["selected_box3"].append(Combox3)
-    widgets["selected_box3"][-1].setCurrentIndex(kind_choose)
-    widgets["selected_box3"][-1].currentIndexChanged.connect(lambda: combo_part_kind_change(widgets["selected_box1"][-1].currentIndex(), widgets["selected_box2"][-1].currentIndex(), widgets["selected_box3"][-1].currentIndex(), widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText()))
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box3"][-1], 4, 2, 1, 2)
-
-    try:
-        parameters["part_percentage"].append([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_percentage"].append([])
-
-    try:
-        parameters["part_name"].append([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_name"].append(["RS621KXF", "LTL431ALT1G(乐山)", "ID5S609SEC-R1", "ULN2003G(UTC)"])
-    
-    try:
-        parameters["part_voltage"].append([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_voltage"].append(["16V", "25V", "50V", "100V"])
-    
-    try:
-        parameters["part_manufacturer"].append([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]])
-    except:
-        parameters["part_manufacturer"].append([])
-
-    parameters["part_supplier"].append(supplier_data)
-
-    #info widget
-    label5 = create_label("%數", 0, 0, align='center')
-    widgets["label5"].append(label5)
-    grid.addWidget(widgets["label5"][-1], 5, 1, 1, 1)
-
-    Combox4 = create_combobox(parameters["part_percentage"][-1], 0, 0)
-    widgets["selected_box4"].append(Combox4)
-    if(box4_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]]), box4_val.casefold()) != None):
-                widgets["selected_box4"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in percentage_data[widgets["selected_box2"][-1].currentText()]]), box4_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box4"][-1], 5, 2, 1, 2)
-
-    #info widget
-    label6 = create_label("料件名稱", 0, 0, align='center')
-    widgets["label6"].append(label6)
-    grid.addWidget(widgets["label6"][-1], 2, 3, 1, 1)
-
-    Combox5 = create_combobox(parameters["part_name"][-1], 0, 0)
-    widgets["selected_box5"].append(Combox5)
-    if(box5_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()) != None):
-                widgets["selected_box5"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in name_data[widgets["selected_box2"][-1].currentText()]]), box5_val.casefold()))
-        except:
-            pass
-
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box5"][-1], 2, 4, 1, 2)
-
-    #info widget
-    label7 = create_label("電壓", 0, 0, align='center')
-    widgets["label7"].append(label7)
-    grid.addWidget(widgets["label7"][-1], 3, 3, 1, 1)
-
-    Combox6 = create_combobox(parameters["part_voltage"][-1], 0, 0)
-    widgets["selected_box6"].append(Combox6)
-    if(box6_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]]), box6_val.casefold()) != None):
-                widgets["selected_box6"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in voltage_data[widgets["selected_box2"][-1].currentText()]]), box6_val.casefold()))
-        except:
-            pass
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box6"][-1], 3, 4, 1, 2)
-
-    #9th
-    label8 = create_label("廠商", 0, 0, align='center')
-    widgets["label8"].append(label8)
-    grid.addWidget(widgets["label8"][-1], 4, 3, 1, 1)
-
-    Combox7 = create_combobox(parameters["part_manufacturer"][-1], 0, 0)
-    widgets["selected_box7"].append(Combox7)
-    if(box7_val != None):
-        try:
-            if(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box7_val.casefold()) != None):
-                widgets["selected_box7"][-1].setCurrentIndex(contains_keyword(([list(d.keys())[0] for d in manufacturer_data[widgets["selected_box2"][-1].currentText()]]), box7_val.casefold()))
-        except:
-            print("No supplier data.")
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box7"][-1], 4, 4, 1, 2)
-
-    #10th 11th
-    label9 = create_label("供應商", 0, 0)
-    widgets["label9"].append(label9)
-    grid.addWidget(widgets["label9"][-1], 5, 3, 1, 1)
-
-    Combox8 = create_combobox(parameters["part_supplier"][-1], 0, 0)
-    widgets["selected_box8"].append(Combox8)
-    if(box8_val != None):
-        index = next((i for i, company in enumerate(supplier_data) if box8_val in company), None)
-        if index is not None:
-            widgets["selected_box8"][-1].setCurrentIndex(index)
-
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["selected_box8"][-1], 5, 4, 1, 2)
-
-    #button widget
-    button2 = create_button("生成料號", "#FFFDD4", 0, 0)
-    #button callback
-    # button.clicked.connect(start_game)
-    widgets["button_output"].append(button2)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_output"][-1], 7, 1, 1, 1)
-
-    #LineEdit widget
-    lineEdit2 = create_lineedit(0,0)
-    lineEdit2.setReadOnly(True)
-    widgets["line_bar2"].append(lineEdit2)
-    grid.addWidget(widgets["line_bar2"][-1], 7, 2, 1, 3)
-
-    label10 = create_label("品項名稱", 0, 0)
-    widgets["label10"].append(label10)
-    grid.addWidget(widgets["label10"][-1], 8, 1, 1, 1)
-
-    #LineEdit widget
-    lineEdit3 = create_lineedit(0,0)
-    widgets["line_bar3"].append(lineEdit3)
-    grid.addWidget(widgets["line_bar3"][-1], 8, 2, 1, 3)
-
-    label11 = create_label("已產生編號", 0, 0)
-    widgets["label11"].append(label11)
-    grid.addWidget(widgets["label11"][-1], 2, 6, 1, 1)
-
-    #QBoxLayout for produced part
-    # label12 = create_label("", 0, 0)
-    # label12.setStyleSheet("background: #DFDFDF")
-    # widgets["label12"].append(label12)
-    # grid.addWidget(widgets["label12"][-1], 3, 6, 4, 1)
-
-    grid.addWidget(Pannel, 3, 6, 4, 1)
-    # grid.addLayout(vbox_trash_layout, 3, 6, 4, 1)
-
-    button3 = create_button("匯出至Excel", "#1F7145", 0, 0)
-    widgets["button_export"].append(button3)
-
-    #place global widgets on the grid
-    grid.addWidget(widgets["button_export"][-1], 7, 6, 1, 1)
-
-    button1.clicked.connect(lambda: sequence_input(lineEdit.text()))
-    button2.clicked.connect(lambda: part_number_generate_for_frame7(lineEdit2, widgets["selected_box1"][-1].currentText(), widgets["selected_box2"][-1].currentText(), widgets["selected_box3"][-1].currentText(), widgets["selected_box4"][-1].currentText(), widgets["selected_box5"][-1].currentText(), widgets["selected_box6"][-1].currentText(), widgets["selected_box7"][-1].currentText(),  widgets["selected_box8"][-1].currentText()))
-    button3.clicked.connect(export_data_to_excel)
-    
-    
+    combo_choose = create_combobox(item_list,0,0,width=200)
+    widgets["combo_choose"].append(combo_choose)
+    grid.addWidget(widgets["combo_choose"][-1], 2, 2, 1, 2, alignment=Qt.AlignCenter)
+
+    label_NUM3 = create_label("項目", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM3"].append(label_NUM3)
+    grid.addWidget(hide_widgets["label_NUM3"][-1], 3, 1, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
+
+    combo_NUM3 = create_combobox([],0,0)
+    hide_widgets["combo_NUM3"].append(combo_NUM3)
+    grid.addWidget(hide_widgets["combo_NUM3"][-1], 3, 2, 1, 1, alignment=Qt.AlignLeft)
+    # combo_NUM3.setVisible(False)
+
+    label_NUM4 = create_label("種類1", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM4"].append(label_NUM4)
+    grid.addWidget(hide_widgets["label_NUM4"][-1], 4, 1, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
+
+    combo_NUM4 = create_combobox([],0,0)
+    hide_widgets["combo_NUM4"].append(combo_NUM4)
+    grid.addWidget(hide_widgets["combo_NUM4"][-1], 4, 2, 1, 1, alignment=Qt.AlignLeft)
+    # combo_NUM3.setVisible(False)
+
+    label_NUM5 = create_label("種類2", 0, 0, align="right", width= 85)
+    hide_widgets["label_NUM5"].append(label_NUM5)
+    grid.addWidget(hide_widgets["label_NUM5"][-1], 5, 1, 1, 1, alignment=Qt.AlignRight)
+    # label_NUM3.setVisible(False)
+
+    combo_NUM5 = create_combobox([],0,0)
+    hide_widgets["combo_NUM5"].append(combo_NUM5)
+    grid.addWidget(hide_widgets["combo_NUM5"][-1], 5, 2, 1, 1, alignment=Qt.AlignLeft)
+    # combo_NUM3.setVisible(False)
+
+    table = create_table()
+    widgets['table'].append(table)
+    grid.addWidget(widgets['table'][-1], 2, 4,6,4)
+
+    combo_choose.currentIndexChanged.connect(lambda: show_input(combo_choose.currentText(), table, hide_widgets))
+
+    button_filter = create_button("篩選", "#FFFDD4", 0, 0)
+    widgets['button_output'].append(button_filter)
+    grid.addWidget(widgets['button_output'][-1], 6,2,1,1, alignment=Qt.AlignRight)
+
+    button_filter.clicked.connect(lambda: show_input(combo_choose.currentText(), table, hide_widgets, combo_NUM3.currentText(), combo_NUM4.currentText(), combo_NUM5.currentText()))
+
+    button_insert = create_button("新增", "#DDDDDD", 0, 0)
+    widgets['button_insert'].append(button_insert)
+    grid.addWidget(widgets['button_insert'][-1], 8, 4,1,1, alignment=Qt.AlignCenter)
+
+    button_insert.clicked.connect(lambda: insert_row_to_table(table))
+
+    button_export = create_button("更新", "#DDDDDD", 0, 0)
+    widgets['button_export'].append(button_export)
+    grid.addWidget(widgets['button_export'][-1], 8, 5,1,2, alignment=Qt.AlignLeft)
+
+    button_export.clicked.connect(lambda: update_row_to_table(combo_choose.currentText(), table, hide_widgets, combo_NUM3.currentText(), combo_NUM4.currentText(), combo_NUM5.currentText()))
+
+    button_delete = create_button("刪除", "#DDDDDD", 0, 0)
+    widgets['button_delete'].append(button_delete)
+    grid.addWidget(widgets['button_delete'][-1], 8, 6,1,2, alignment=Qt.AlignCenter)
+
+    button_delete.clicked.connect(lambda: del_selected_data(combo_choose.currentText(), table, hide_widgets, combo_NUM3.currentText(), combo_NUM4.currentText(), combo_NUM5.currentText()))

@@ -13,7 +13,7 @@ def tag_printer(pic: str, ):
     # Setting Printer Specificiations
     backend = 'pyusb'    # 'pyusb', 'linux_kernal', 'network'
     model = 'QL-1100' 
-    printer = 'usb://0x04f9:0x20A7'  
+    printer = 'usb://0x04f9:0x20a7'  
 
     qlr = BrotherQLRaster(model)
     qlr.exception_on_warning = True
@@ -22,7 +22,7 @@ def tag_printer(pic: str, ):
     instructions = convert(
             qlr=qlr, 
             images=label_images,    #  Takes a list of file names or PIL objects.
-            label='102x51', 
+            label='50', 
             rotate='0',    # 'Auto', '0', '90', '270'
             threshold=70.0,    # Black and white threshold in percent.
             dither=False, 
